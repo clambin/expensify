@@ -3,6 +3,7 @@ package analyzer
 import (
 	"errors"
 	"github.com/clambin/expensify/internal/payment"
+	"github.com/clambin/expensify/pkg/maps"
 	"gopkg.in/yaml.v3"
 	"io"
 	"regexp"
@@ -33,9 +34,9 @@ func LoadRules(r io.Reader) (Rules, error) {
 }
 
 func (r Rules) Match(p payment.Payment) (string, bool) {
-	for name, _r := range r {
-		for i := range _r {
-			if _r[i].Match(p) {
+	for _, name := range maps.SortedKeys(r) {
+		for _, _r := range r[name] {
+			if _r.Match(p) {
 				return name, true
 			}
 		}

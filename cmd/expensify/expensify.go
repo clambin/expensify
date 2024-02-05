@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/clambin/expensify/internal/analyzer"
 	"github.com/clambin/expensify/internal/payment"
+	"github.com/clambin/expensify/pkg/maps"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
@@ -65,11 +66,14 @@ func showSummary(_ *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		for category, payments := range matched {
-			fmt.Printf("%s: %.2f\n", category, payments.Total())
+		for _, category := range maps.SortedKeys(matched) {
+			if category == "ignored" && showIgnored == false {
+				continue
+			}
+			fmt.Printf("%s: %.2f\n", category, matched[category].Total())
 			if summaryDetails {
-				for i := range payments {
-					fmt.Printf("\t%.2f\t%s\n", payments[i].GetAmount(), payments[i].GetDescription())
+				for i := range matched[category] {
+					fmt.Printf("\t%.2f\t%s\n", matched[category][i].GetAmount(), matched[category][i].GetDescription())
 				}
 			}
 		}
