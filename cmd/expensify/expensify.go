@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/clambin/expensify/categorizer"
+	"github.com/clambin/expensify/internal/analyzer"
+	"github.com/clambin/expensify/internal/payment"
+	"github.com/clambin/expensify/pkg/maps"
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
@@ -51,32 +53,66 @@ func main() {
 }
 
 func showSummary(_ *cobra.Command, args []string) {
-	c, err := categorizer.New(rulesFilename, args...)
+	rules, err := loadRules()
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
-	for category, entries := range c.Matched() {
-		if category == "ignore" && !showIgnored {
-			continue
+	for _, filename := range args {
+		matched, _, err := analyze(filename, rules)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
 		}
-		fmt.Printf("%s: %.2f\n", category, entries.Total())
-		if summaryDetails {
-			for _, entry := range entries {
-				fmt.Printf("\t%.2f\t%s\n", entry.GetAmount(), entry.GetDescription())
+
+		for _, category := range maps.SortedKeys(matched) {
+			if category == "ignored" && showIgnored == false {
+				continue
+			}
+			fmt.Printf("%s: %.2f\n", category, matched[category].Total())
+			if summaryDetails {
+				for i := range matched[category] {
+					fmt.Printf("\t%.2f\t%s\n", matched[category][i].GetAmount(), matched[category][i].GetDescription())
+				}
 			}
 		}
 	}
 }
 
 func showUnmatched(_ *cobra.Command, args []string) {
-	c, err := categorizer.New(rulesFilename, args...)
+	rules, err := loadRules()
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
-	for _, unmatched := range c.Unmatched() {
-		fmt.Printf("\t%.2f\t%s\n", unmatched.GetAmount(), unmatched.GetDescription())
+
+	for _, filename := range args {
+		_, unmatched, err := analyze(filename, rules)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		for i := range unmatched {
+			fmt.Printf("\t%.2f\t%s\n", unmatched[i].GetAmount(), unmatched[i].GetDescription())
+		}
 	}
+}
+
+func loadRules() (analyzer.Rules, error) {
+	f, err := os.Open(rulesFilename)
+	if err != nil {
+		return nil, fmt.Errorf("rules: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+	return analyzer.LoadRules(f)
+}
+
+func analyze(filename string, rules analyzer.Rules) (map[string]payment.Payments, payment.Payments, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open %s: %w", filename, err)
+	}
+	defer func() { _ = f.Close() }()
+	return analyzer.Analyze(f, rules)
 }
