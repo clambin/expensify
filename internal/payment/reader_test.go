@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+func TestPayments_Total(t *testing.T) {
+	var payments payment.Payments
+	assert.Zero(t, payments.Total())
+
+	payments = append(payments, payment.CheckingPayment{Amount: 10}, payment.VISAPayment{Amount: 100})
+	assert.Equal(t, 110.0, payments.Total())
+}
+
 func TestRead(t *testing.T) {
 	tests := []struct {
 		name    string
