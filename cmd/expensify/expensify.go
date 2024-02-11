@@ -111,7 +111,7 @@ func loadRules() (analyzer.Rules, error) {
 func analyze(filename string, rules analyzer.Rules) (map[string]payment.Payments, payment.Payments, error) {
 	f, err := os.Open(filename)
 	if err != nil {
-		return nil, nil, fmt.Errorf("open %s: %w", filename, err)
+		return nil, nil, err
 	}
 	defer func() { _ = f.Close() }()
 	return analyzer.Analyze(f, rules)

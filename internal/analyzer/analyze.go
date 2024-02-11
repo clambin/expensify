@@ -12,7 +12,7 @@ func Analyze(r io.Reader, rules Rules) (map[string]payment.Payments, payment.Pay
 		return nil, nil, fmt.Errorf("read: %w", err)
 	}
 
-	matched := make(map[string]payment.Payments)
+	matched := make(map[string]payment.Payments, len(rules))
 	var unmatched []payment.Payment
 	for _, p := range payments {
 		if name, ok := rules.Match(p); ok {

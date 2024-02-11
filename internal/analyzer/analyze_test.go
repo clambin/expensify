@@ -63,6 +63,8 @@ id;31/10/2023;31/10/2023;-11.00;EUR;foo;Kaartbetaling;;;;bar;
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			rules := analyzer.Rules{
 				"foo": []analyzer.Rule{{Description: "^foo"}},
 				"bar": []analyzer.Rule{{Description: "^bar"}},

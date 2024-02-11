@@ -88,6 +88,7 @@ foo:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := analyzer.LoadRules(bytes.NewBufferString(tt.input))
 			tt.wantErr(t, err)
 			if err == nil {
