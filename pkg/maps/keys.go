@@ -2,14 +2,12 @@ package maps
 
 import (
 	"cmp"
+	"maps"
 	"slices"
 )
 
 func SortedKeys[M ~map[K]V, K cmp.Ordered, V any](m M) []K {
-	keys := make([]K, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
+	keys := slices.Collect(maps.Keys(m))
 	slices.Sort(keys)
 	return keys
 }
