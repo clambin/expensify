@@ -2,9 +2,11 @@ module github.com/clambin/expensify
 
 go 1.22
 
+toolchain go1.23.4
+
 require (
 	github.com/spf13/cobra v1.8.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
