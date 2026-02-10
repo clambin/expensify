@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -45,7 +45,7 @@ func WithS3Backend(client S3Client, bucket string) Option {
 		c.backend = &s3Backend{
 			bucket:   bucket,
 			client:   client,
-			uploader: manager.NewUploader(client),
+			uploader: transfermanager.New(client),
 		}
 	}
 }
@@ -84,14 +84,14 @@ func (f fsBackend) Add(key string, body []byte) error {
 }
 
 type S3Client interface {
-	manager.UploadAPIClient
+	transfermanager.S3APIClient
 	ListObjects(ctx context.Context, params *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error)
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 }
 
 type s3Backend struct {
 	client   S3Client
-	uploader *manager.Uploader
+	uploader *transfermanager.Client
 	bucket   string
 }
 
@@ -122,7 +122,7 @@ func (s s3Backend) Get(key string) ([]byte, error) {
 }
 
 func (s s3Backend) Add(key string, body []byte) error {
-	_, err := s.uploader.Upload(context.Background(), &s3.PutObjectInput{
+	_, err := s.uploader.UploadObject(context.Background(), &transfermanager.UploadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
 		Body:   bytes.NewBuffer(body),

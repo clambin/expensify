@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"maps"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"github.com/clambin/expensify/internal/repo"
@@ -54,8 +52,8 @@ func TestUpload(t *testing.T) {
 			filename := filepath.Join(tmpDir, "/test.csv")
 			require.NoError(t, os.WriteFile(filename, tt.body, 0644))
 
-			var r fakeRepo
-			key, err := upload(&r, filename)
+			r := repo.New(repo.WithFileSystem(tmpDir))
+			key, err := upload(r, filename)
 			tt.wantErr(t, err)
 			assert.Equal(t, tt.wantKey, key)
 
@@ -78,40 +76,12 @@ func TestUpload_Duplicate(t *testing.T) {
 	filename := filepath.Join(tmpDir, "/test.csv")
 	require.NoError(t, os.WriteFile(filename, body, 0644))
 
-	var r fakeRepo
-	key, err := upload(&r, filename)
+	r := repo.New(repo.WithFileSystem(tmpDir))
+	key, err := upload(r, filename)
 	require.NoError(t, err)
 	assert.Equal(t, "bnp-visa-2026-01-24", key)
 
-	key, err = upload(&r, filename)
+	key, err = upload(r, filename)
 	require.NoError(t, err)
 	assert.Equal(t, "bnp-visa-2026-01-24-1", key)
-}
-
-var _ repo.Repo = (*fakeRepo)(nil)
-
-type fakeRepo struct {
-	files map[string][]byte
-}
-
-func (f *fakeRepo) Add(key string, body []byte) error {
-	if f.files == nil {
-		f.files = make(map[string][]byte)
-	}
-	f.files[key] = body
-	return nil
-}
-
-func (f *fakeRepo) List() ([]string, error) {
-	keys := slices.Collect(maps.Keys(f.files))
-	slices.Sort(keys)
-	return keys, nil
-}
-
-func (f *fakeRepo) Get(key string) ([]byte, error) {
-	body, ok := f.files[key]
-	if !ok {
-		return nil, os.ErrNotExist
-	}
-	return body, nil
 }

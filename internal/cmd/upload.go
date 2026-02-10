@@ -20,7 +20,7 @@ func init() {
 var (
 	uploadCmd = &cobra.Command{
 		Use:   "upload",
-		Short: "upload statements",
+		Short: "upload statement files",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_, repo, err := loadConfigurationWithRepo(cmd)
 			if err != nil {

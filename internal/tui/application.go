@@ -1,10 +1,7 @@
 package tui
 
 import (
-	"fmt"
-	"os"
-
-	"codeberg.org/clambin/bubbles/table"
+	"codeberg.org/clambin/bubbles/frame"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,56 +13,58 @@ import (
 type activePane int
 
 const (
-	noPane activePane = iota
+	repoPane activePane = iota
+	summaryPane
 	statementsPane
-	detailsPane
 )
 
-var _ tea.Model = Application{}
-
-type Application struct {
-	keyMap      ApplicationKeyMap
-	help        help.Model
-	repo        repo.Repo
-	repoView    *repoView
-	bodyView    *bodyView
-	detailsView *detailsView
-	tagRules    []statements.TagRule
-	activePane  activePane
-	width       int
-	height      int
+type pane interface {
+	Init() tea.Cmd
+	Update(msg tea.Msg) tea.Cmd
+	View() string
+	SetSize(width, height int)
+	help.KeyMap
 }
 
-func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) (tea.Model, error) {
-	files, err := repo.List()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list files: %w", err)
-	}
-	rows := make([]table.Row, len(files))
-	for i, file := range files {
-		rows[i] = table.Row{file}
-	}
+var (
+	_ tea.Model   = Application{}
+	_ help.KeyMap = Application{}
+)
 
+type Application struct {
+	help       help.Model
+	panes      map[activePane]pane
+	statusLine *statusLine
+	keyMap     ApplicationKeyMap
+	activePane activePane
+	width      int
+	height     int
+}
+
+func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model {
 	h := help.New()
 	h.Styles = helpStyles
 
 	return Application{
-		keyMap:      keyMap.ApplicationKeyMap,
-		help:        h,
-		repo:        repo,
-		repoView:    newRepoView(rows, repo, keyMap.RepoKeyMap),
-		bodyView:    newBodyView(keyMap.BodyKeyMap),
-		detailsView: newDetailsView(keyMap.DetailsKeyMap),
-		tagRules:    tagRules,
-		activePane:  noPane,
-	}, nil
+		keyMap: keyMap.ApplicationKeyMap,
+		help:   h,
+		panes: map[activePane]pane{
+			repoPane:       newRepoView(repo, tagRules, keyMap.RepoKeyMap),
+			summaryPane:    newSummaryView(keyMap.SummaryKeyMap),
+			statementsPane: newStatementsView(keyMap.StatementsListKeyMap, keyMap.StatementsDetailsKeyMap),
+		},
+		statusLine: newStatusLine(),
+		activePane: repoPane,
+	}
 }
 
 func (a Application) Init() tea.Cmd {
-	return tea.Batch(
-		a.repoView.Init(),
-		a.bodyView.Init(),
-	)
+	initCmds := make([]tea.Cmd, 0, len(a.panes))
+	for _, c := range a.panes {
+		initCmds = append(initCmds, c.Init())
+	}
+	initCmds = append(initCmds, a.statusLine.Init())
+	return tea.Batch(initCmds...)
 }
 
 func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -73,84 +72,70 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
-		a.resize()
-	case errorMsg:
-		_, _ = fmt.Fprintln(os.Stderr, msg.err)
-	case openStatementsMsg:
-		cmd = loadStatementsCmd(a.repo, a.tagRules, msg.name)
-	case loadStatementsMsg:
-		a.bodyView.open(msg.file, msg.taggedStatements)
-		a.activePane = statementsPane
-		a.resize()
-	case closeStatementsMsg:
-		a.activePane = noPane
-		a.resize()
-	case openDetailsMsg:
-		a.detailsView.load(msg.taggedRow, msg.schema)
-		a.activePane = detailsPane
-	case closeDetailsMsg:
-		a.activePane = statementsPane
+		borderWidth := frameStyles.Border.GetHorizontalBorderSize()
+		borderHeight := frameStyles.Border.GetVerticalBorderSize()
+
+		workingHeight := a.height - 2 // one for status line, one for help
+
+		headerHeight := workingHeight / 3
+		a.panes[repoPane].SetSize(a.width/2-borderWidth, headerHeight-borderHeight)
+		a.panes[summaryPane].SetSize(a.width/2-borderWidth, headerHeight-borderHeight)
+		a.panes[statementsPane].SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
+		a.statusLine.SetSize(a.width, 1)
+		a.help.Width = a.width
+	case setActivePaneMsg:
+		a.activePane = activePane(msg)
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, a.keyMap.Quit):
-			return a, tea.Quit
-		default:
-			switch a.activePane {
-			case noPane:
-				cmd = a.repoView.Update(msg)
-			case statementsPane:
-				cmd = a.bodyView.Update(msg)
-			case detailsPane:
-				cmd = a.detailsView.Update(msg)
+			cmd = tea.Quit
+		case key.Matches(msg, a.keyMap.Next):
+			cmd = func() tea.Msg {
+				return setActivePaneMsg((a.activePane + 1) % 3)
 			}
+		case key.Matches(msg, a.keyMap.Previous):
+			cmd = func() tea.Msg {
+				return setActivePaneMsg((a.activePane - 1 + 3) % 3)
+			}
+		case key.Matches(msg, a.keyMap.ClearStatus):
+			cmd = func() tea.Msg { return statusMsg{} }
+		default:
+			cmd = a.panes[a.activePane].Update(msg)
 		}
 	default:
-		switch a.activePane {
-		case noPane:
-			cmd = a.repoView.Update(msg)
-		case statementsPane:
-			cmd = a.bodyView.Update(msg)
-		case detailsPane:
-			cmd = a.detailsView.Update(msg)
+		cmds := make([]tea.Cmd, 0, len(a.panes))
+		for _, c := range a.panes {
+			cmds = append(cmds, c.Update(msg))
 		}
+		cmds = append(cmds, a.statusLine.Update(msg))
+		cmd = tea.Batch(cmds...)
 	}
 	return a, cmd
 }
 
 func (a Application) View() string {
-	components := make([]string, 0, 3)
-	components = append(components, a.repoView.View())
-	switch a.activePane {
-	case statementsPane:
-		components = append(components, a.bodyView.View())
-	case detailsPane:
-		components = append(components, a.detailsView.View())
-	default:
+	s := map[activePane]frame.Styles{
+		repoPane:       frameStyles,
+		summaryPane:    frameStyles,
+		statementsPane: frameStyles,
 	}
-	components = append(components, a.viewShortHelp())
-	return lipgloss.JoinVertical(lipgloss.Top, components...)
+	s[a.activePane] = selectedFrameStyles
+
+	return lipgloss.JoinVertical(lipgloss.Top,
+		lipgloss.JoinHorizontal(lipgloss.Left,
+			frame.Draw("files", lipgloss.Center, a.panes[repoPane].View(), s[repoPane]),
+			frame.Draw("summary", lipgloss.Center, a.panes[summaryPane].View(), s[summaryPane]),
+		),
+		frame.Draw("statements", lipgloss.Center, a.panes[statementsPane].View(), s[statementsPane]),
+		a.statusLine.View(),
+		a.help.View(a),
+	)
 }
 
-func (a Application) resize() {
-	switch a.activePane {
-	case noPane:
-		a.repoView.SetSize(a.width, a.height-1)
-	default:
-		a.repoView.SetSize(a.width, 5)
-		a.bodyView.setSize(a.width, a.height-5-1)
-		a.detailsView.SetSize(a.width, a.height-5-1)
-	}
+func (a Application) ShortHelp() []key.Binding {
+	return append(a.keyMap.ShortHelp(), a.panes[a.activePane].ShortHelp()...)
 }
 
-func (a Application) viewShortHelp() string {
-	keys := a.keyMap.ShortHelp()
-	switch a.activePane {
-	case noPane:
-		keys = append(keys, a.repoView.ShortHelp()...)
-	case statementsPane:
-		keys = append(keys, a.bodyView.ShortHelp()...)
-	case detailsPane:
-		keys = append(keys, a.detailsView.ShortHelp()...)
-	}
-	return a.help.ShortHelpView(keys)
+func (a Application) FullHelp() [][]key.Binding {
+	return [][]key.Binding{a.ShortHelp()}
 }

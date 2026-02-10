@@ -1,5 +1,5 @@
-codeberg.org/clambin/bubbles v0.6.1 h1:7f6mH9rStgQGmZGKAdudTijLnyUL0mTHH3eWpvcHGrg=
-codeberg.org/clambin/bubbles v0.6.1/go.mod h1:MxYTaIsBEYTJTXcP2VYOIpGRzTslmcbqXo13TodrO/s=
+codeberg.org/clambin/bubbles v0.7.0 h1:lGN1Z30LAxq+q52jZPdI7LAxpwbEE1ElWUBf9e7UGtI=
+codeberg.org/clambin/bubbles v0.7.0/go.mod h1:9dgObbNBPF49jTUpENf1OvHTVJqWQ+q9nxsQhkVKeMs=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
 dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
@@ -22,8 +22,8 @@ github.com/aws/aws-sdk-go-v2/credentials v1.19.7 h1:tHK47VqqtJxOymRrNtUXN5SP/zUT
 github.com/aws/aws-sdk-go-v2/credentials v1.19.7/go.mod h1:qOZk8sPDrxhf+4Wf4oT2urYJrYt3RejHSzgAquYeppw=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.17 h1:I0GyV8wiYrP8XpA70g1HBcQO1JlQxCMTW9npl5UbDHY=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.17/go.mod h1:tyw7BOl5bBe/oqvoIeECFJjMdzXoa/dfVz3QQ5lgHGA=
-github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.21.1 h1:1hWFp+52Vq8Fevy/KUhbW/1MEApMz7uitCF/PQXRJpk=
-github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.21.1/go.mod h1:sIec8j802/rCkCKgZV678HFR0s7lhQUYXT77tIvlaa4=
+github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.1.2 h1:1q8/WwEqZnM/vO4q1gx2g7lHYmyN+o4P7G6EW4zKbRQ=
+github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.1.2/go.mod h1:owKRexW+Ir5ACD2UTesmjkQ+w7mcmknLNfwOiKfVLTg=
 github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17 h1:xOLELNKGp2vsiteLsvLPwxC+mYmO6OZ8PYgiuPJzF8U=
 github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17/go.mod h1:5M5CI3D12dNOtH3/mk6minaRwI2/37ifCURZISxA/IQ=
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.17 h1:WWLqlh79iO48yLkj1v3ISRNiv+3KdQoZ6JWyfcsyQik=
@@ -60,8 +60,8 @@ github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK3
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/charmbracelet/bubbles v0.21.1 h1:nj0decPiixaZeL9diI4uzzQTkkz1kYY8+jgzCZXSmW0=
-github.com/charmbracelet/bubbles v0.21.1/go.mod h1:HHvIYRCpbkCJw2yo0vNX1O5loCwSr9/mWS8GYSg50Sk=
+github.com/charmbracelet/bubbles v1.0.0 h1:12J8/ak/uCZEMQ6KU7pcfwceyjLlWsDLAxB5fXonfvc=
+github.com/charmbracelet/bubbles v1.0.0/go.mod h1:9d/Zd5GdnauMI5ivUIVisuEm3ave1XwXtD1ckyV6r3E=
 github.com/charmbracelet/bubbletea v1.3.10 h1:otUDHWMMzQSB0Pkc87rm691KZ3SWa4KUlvF9nRvCICw=
 github.com/charmbracelet/bubbletea v1.3.10/go.mod h1:ORQfo0fk8U+po9VaNvnV95UPWA1BitP1E0N6xJPlHr4=
 github.com/charmbracelet/colorprofile v0.4.1 h1:a1lO03qTrSIRaK8c3JRxJDZOvhvIeSco3ej+ngLk1kk=
@@ -72,10 +72,10 @@ github.com/charmbracelet/x/ansi v0.11.6 h1:GhV21SiDz/45W9AnV2R61xZMRri5NlLnl6CVF
 github.com/charmbracelet/x/ansi v0.11.6/go.mod h1:2JNYLgQUsyqaiLovhU2Rv/pb8r6ydXKS3NIttu3VGZQ=
 github.com/charmbracelet/x/cellbuf v0.0.15 h1:ur3pZy0o6z/R7EylET877CBxaiE1Sp1GMxoFPAIztPI=
 github.com/charmbracelet/x/cellbuf v0.0.15/go.mod h1:J1YVbR7MUuEGIFPCaaZ96KDl5NoS0DAWkskup+mOY+Q=
-github.com/charmbracelet/x/exp/golden v0.0.0-20260116010723-b770f9f0bfed h1:v8E7OnQcNBK3UkTrAbx+f2MhRtQzvhws5I+tmS7lsZ0=
-github.com/charmbracelet/x/exp/golden v0.0.0-20260116010723-b770f9f0bfed/go.mod h1:V8n/g3qVKNxr2FR37Y+otCsMySvZr601T0C7coEP0bw=
-github.com/charmbracelet/x/exp/teatest v0.0.0-20260116010723-b770f9f0bfed h1:7xAPMJSKinwlFqoEXKIF4ayvGvDMexsHkp3ovQTN/CA=
-github.com/charmbracelet/x/exp/teatest v0.0.0-20260116010723-b770f9f0bfed/go.mod h1:aPVjFrBwbJgj5Qz1F0IXsnbcOVJcMKgu1ySUfTAxh7k=
+github.com/charmbracelet/x/exp/golden v0.0.0-20260209194814-eeb2896ac759 h1:wQKrpioYyZbkqq2V5o9x7D2dDnqZeTgFshM7G2/vmu0=
+github.com/charmbracelet/x/exp/golden v0.0.0-20260209194814-eeb2896ac759/go.mod h1:V8n/g3qVKNxr2FR37Y+otCsMySvZr601T0C7coEP0bw=
+github.com/charmbracelet/x/exp/teatest v0.0.0-20260209194814-eeb2896ac759 h1:xKdvVrQLCRUiQbKAEEJpvjrToU2egZYpN4p3JC87nCs=
+github.com/charmbracelet/x/exp/teatest v0.0.0-20260209194814-eeb2896ac759/go.mod h1:aPVjFrBwbJgj5Qz1F0IXsnbcOVJcMKgu1ySUfTAxh7k=
 github.com/charmbracelet/x/term v0.2.2 h1:xVRT/S2ZcKdhhOuSP4t5cLi5o+JxklsoEObBSgfgZRk=
 github.com/charmbracelet/x/term v0.2.2/go.mod h1:kF8CY5RddLWrsgVwpw4kAa6TESp6EB5y3uxGLeCqzAI=
 github.com/clipperhouse/displaywidth v0.9.0 h1:Qb4KOhYwRiN3viMv1v/3cTBlz3AcAZX3+y9OLhMtAtA=

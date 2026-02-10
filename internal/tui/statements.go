@@ -1,173 +1,187 @@
 package tui
 
 import (
-	"bytes"
 	"fmt"
-	"maps"
-	"slices"
 	"strconv"
+	"strings"
 	"time"
 
-	"codeberg.org/clambin/bubbles/frame"
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/clambin/expensify/internal/repo"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/clambin/expensify/internal/statements"
 	"github.com/clambin/expensify/tcsv"
 )
 
-var (
-	borderStyles = map[bool]frame.Styles{
-		true:  selectedFrameStyles,
-		false: frameStyles,
+var statementColumns map[string][]table.Column
+
+var formatting = map[string]struct {
+	RowStyle table.CellStyle
+	Width    int
+}{
+	"Date":            {Width: 10},
+	"Amount":          {Width: 11, RowStyle: table.CellStyle{Style: lipgloss.NewStyle().Align(lipgloss.Right)}},
+	"Type":            {Width: 14},
+	"Counterpart":     {Width: 17},
+	"CounterpartName": {Width: 18},
+	"Message":         {Width: 25},
+	"Tag":             {Width: 10},
+}
+
+func init() {
+	statementColumns = make(map[string][]table.Column)
+	for name, schema := range statements.Schemas {
+		columns := make([]table.Column, 0, len(schema.Columns)+1)
+		for _, col := range schema.Columns {
+			if col.Label != "" {
+				columns = append(columns, table.Column{Name: col.Label, Width: formatting[col.Label].Width, RowStyle: formatting[col.Label].RowStyle})
+			}
+		}
+		columns = append(columns, table.Column{Name: "Tag", Width: formatting["Tag"].Width, RowStyle: formatting["Tag"].RowStyle})
+		statementColumns[name] = columns
 	}
+}
+
+// statementsMode indicates if the statementsView is in list or details mode
+type statementsMode int
+
+const (
+	statementsList statementsMode = iota
+	statementsDetails
 )
 
-var _ help.KeyMap = (*bodyView)(nil)
-
-type bodyView struct {
-	statementsView *statementsView
-	summaryView    *summaryView
-	keyMap         BodyKeyMap
-	activeTab      int
+// Cmd returns a tea.Cmd to set the statementsMode
+func (m statementsMode) Cmd() tea.Cmd {
+	return func() tea.Msg { return setStatementsModeMsg(m) }
 }
 
-func newBodyView(keyMap BodyKeyMap) *bodyView {
-	return &bodyView{keyMap: keyMap}
-}
+var (
+	_ pane = (*statementsView)(nil)
+	_ pane = (*statementsListView)(nil)
+	_ pane = (*statementsDetailsView)(nil)
+)
 
-func (b *bodyView) Init() tea.Cmd {
-	return tea.Batch(b.statementsView.Init(), b.summaryView.Init())
-}
-
-func (b *bodyView) Update(msg tea.Msg) tea.Cmd {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, b.keyMap.NextPane):
-			b.activeTab = (b.activeTab + 1) % 2
-			return nil
-		case key.Matches(msg, b.keyMap.PrevPane):
-			b.activeTab = (b.activeTab - 1 + 2) % 2
-			return nil
-		case key.Matches(msg, b.keyMap.Close):
-			return func() tea.Msg { return closeStatementsMsg{} }
-		default:
-			return b.updateActivePane(msg)
-		}
-	default:
-		return b.updateActivePane(msg)
-	}
-}
-
-func (b *bodyView) View() string {
-	return lipgloss.JoinHorizontal(lipgloss.Left,
-		frame.Draw("statements", lipgloss.Center, b.statementsView.View(), borderStyles[b.activeTab == 0]),
-		frame.Draw("summary", lipgloss.Center, b.summaryView.View(), borderStyles[b.activeTab == 1]),
-	)
-}
-
-func (b *bodyView) updateActivePane(msg tea.Msg) tea.Cmd {
-	switch b.activeTab {
-	case 0:
-		return b.statementsView.Update(msg)
-	case 1:
-		return b.summaryView.Update(msg)
-	default:
-		return nil
-	}
-}
-
-func (b *bodyView) open(file tcsv.File, taggedStatements []statements.TaggedRow) {
-	// create the statements table & view
-	b.statementsView = newStatementsView(file, taggedStatements, b.keyMap.StatementsKeyMap)
-
-	// create the summary
-	// currently operating in the tea update loop.
-	// if statements get too big, may need to move this to a command.
-	summary, sortedTags := summarizeStatements(taggedStatements, file.Schema)
-
-	rows := make([]table.Row, len(sortedTags)+1)
-	var total float64
-	for i, sortedTag := range sortedTags {
-		total += summary[sortedTag]
-		rows[i] = table.Row{
-			sortedTag,
-			alignFloat(summary[sortedTag], 10, lipgloss.Right),
-		}
-	}
-	rows[len(sortedTags)] = table.Row{
-		tableStyles.Header.Render("Total"),
-		tableStyles.Header.Render(alignFloat(total, 10, lipgloss.Right)),
-	}
-
-	// create the summary table & view
-	b.summaryView = newSummaryView(rows)
-
-	// activate the body
-	b.activeTab = 0
-}
-
-func (b *bodyView) setSize(width, height int) {
-	width -= 2 * frameStyles.Border.GetHorizontalBorderSize()
-	height -= frameStyles.Border.GetVerticalBorderSize()
-
-	summaryWidth := width / 5
-	statementsWidth := width - summaryWidth
-
-	b.statementsView.SetSize(statementsWidth, height)
-	b.summaryView.SetSize(summaryWidth, height)
-}
-
-func (b *bodyView) ShortHelp() []key.Binding {
-	keys := b.keyMap.ShortHelp()
-	switch b.activeTab {
-	case 0:
-		keys = append(keys, b.statementsView.ShortHelp()...)
-	case 1:
-		//keys = append(keys, b.summaryView.ShortHelp()...)
-	}
-	return keys
-}
-
-func (b *bodyView) FullHelp() [][]key.Binding {
-	return [][]key.Binding{b.ShortHelp()}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-var statementColumns = map[string][]table.Column{
-	"bnp-debit": {
-		{Name: "Date", Width: 10},
-		{Name: "Amount", Width: 11, RowStyle: table.CellStyle{Style: lipgloss.NewStyle().Align(lipgloss.Right)}},
-		{Name: "Type", Width: 14},
-		{Name: "Counterpart", Width: 17},
-		{Name: "CounterpartName", Width: 18},
-		{Name: "Message", Width: 25},
-		{Name: "Details"},
-		{Name: "Tag", Width: 10},
-	},
-	"bnp-visa": {
-		{Name: "Date", Width: 10},
-		{Name: "Amount", Width: 11, RowStyle: table.CellStyle{Style: lipgloss.NewStyle().Align(lipgloss.Right)}},
-		{Name: "Vendor"},
-		{Name: "Tag", Width: 10},
-	},
-}
-
+// statementsView combines the list of statements with a detailed view of the selected statement
 type statementsView struct {
+	views map[statementsMode]pane
+	mode  statementsMode
+}
+
+func newStatementsView(listKeyMap StatementsListKeyMap, detailsKeyMap StatementsDetailsKeyMap) *statementsView {
+	return &statementsView{
+		views: map[statementsMode]pane{
+			statementsList: &statementsListView{
+				Table: table.NewTable(
+					"statements",
+					statementColumns["bnp-debit"],
+					nil,
+					tableStyles,
+					table.DefaultKeyMap(),
+				),
+				StatementsListKeyMap: listKeyMap,
+			},
+			statementsDetails: &statementsDetailsView{
+				Table: table.NewTable(
+					"statement details",
+					table.Columns{
+						{Name: "Field", Width: 15},
+						{Name: "Value"},
+					},
+					nil,
+					tableStyles, table.DefaultKeyMap(),
+				),
+				StatementsDetailsKeyMap: detailsKeyMap,
+			},
+		},
+	}
+}
+
+func (sv *statementsView) Init() tea.Cmd {
+	cmds := make([]tea.Cmd, 0, len(sv.views))
+	for _, v := range sv.views {
+		cmds = append(cmds, v.Init())
+	}
+	return tea.Batch(cmds...)
+}
+
+func (sv *statementsView) Update(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) {
+	case setStatementsModeMsg:
+		sv.mode = statementsMode(msg)
+		return nil
+	case tea.KeyMsg:
+		return sv.views[sv.mode].Update(msg)
+	default:
+		cmds := make([]tea.Cmd, 0, len(sv.views))
+		for _, v := range sv.views {
+			cmds = append(cmds, v.Update(msg))
+		}
+		return tea.Batch(cmds...)
+	}
+}
+
+func (sv *statementsView) View() string {
+	return sv.views[sv.mode].View()
+}
+
+func (sv *statementsView) SetSize(width, height int) {
+	for _, v := range sv.views {
+		v.SetSize(width, height)
+	}
+}
+
+func (sv *statementsView) ShortHelp() []key.Binding {
+	return sv.views[sv.mode].ShortHelp()
+}
+
+func (sv *statementsView) FullHelp() [][]key.Binding {
+	return [][]key.Binding{sv.ShortHelp()}
+}
+
+// statementsListView displays a list of statements
+type statementsListView struct {
 	*table.Table
-	StatementsKeyMap
+	StatementsListKeyMap
 	schema tcsv.Schema
 }
 
-func newStatementsView(f tcsv.File, r []statements.TaggedRow, keyMap StatementsKeyMap) *statementsView {
-	// rows
-	rows := make([]table.Row, len(r))
-	for i, row := range r {
+func (s *statementsListView) Update(msg tea.Msg) tea.Cmd {
+	switch msg := msg.(type) {
+	case populateStatementsMsg:
+		s.schema = msg.file.Schema
+		s.SetColumns(statementColumns[msg.file.SchemaName])
+		return statementsList.Cmd()
+	case showStatementsMsg:
+		s.SetRows(s.buildRows(msg.statements))
+		return statementsList.Cmd()
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, s.Details):
+			return tea.Batch(
+				func() tea.Msg { return openStatementDetailsMsg{taggedRow: s.SelectedRow, schema: s.schema} },
+				statementsDetails.Cmd(),
+			)
+		default:
+			return s.Table.Update(msg)
+		}
+	default:
+		return s.Table.Update(msg)
+	}
+}
+
+func (s *statementsListView) ShortHelp() []key.Binding {
+	return []key.Binding{s.Details}
+}
+
+func (s *statementsListView) FullHelp() [][]key.Binding {
+	return [][]key.Binding{s.ShortHelp()}
+}
+
+func (s *statementsListView) buildRows(statements []statements.TaggedRow) []table.Row {
+	rows := make([]table.Row, len(statements))
+	for i, row := range statements {
 		rows[i] = make(table.Row, len(row.Row), len(row.Row)+1)
 		for j, cell := range row.Row {
 			var value string
@@ -183,35 +197,46 @@ func newStatementsView(f tcsv.File, r []statements.TaggedRow, keyMap StatementsK
 		}
 		rows[i] = append(rows[i], row.Tag)
 	}
-	// model
-	tbl := table.NewTable(
-		"statemenets",
-		statementColumns[f.SchemaName],
-		rows,
-		tableStyles,
-		table.DefaultKeyMap(),
-	)
-
-	return &statementsView{
-		Table:            tbl,
-		schema:           f.Schema,
-		StatementsKeyMap: keyMap,
-	}
+	return rows
 }
 
-func (sv *statementsView) Init() tea.Cmd {
-	return nil
+// statementsDetailsView displays the details of a single statement
+type statementsDetailsView struct {
+	*table.Table
+	StatementsDetailsKeyMap
 }
 
-func (sv *statementsView) Update(msg tea.Msg) tea.Cmd {
+func (s *statementsDetailsView) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
+	case openStatementDetailsMsg:
+		s.SetRows(s.buildRows(msg.taggedRow, msg.schema))
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, sv.Open):
-			return func() tea.Msg { return openDetailsMsg{taggedRow: sv.SelectedRow, schema: sv.schema} }
+		case key.Matches(msg, s.Close):
+			return statementsList.Cmd()
 		}
 	}
-	return sv.Table.Update(msg)
+	return s.Table.Update(msg)
+}
+
+func (s *statementsDetailsView) ShortHelp() []key.Binding {
+	return []key.Binding{s.Close}
+}
+
+func (s *statementsDetailsView) FullHelp() [][]key.Binding {
+	return [][]key.Binding{s.ShortHelp()}
+}
+
+func (s *statementsDetailsView) buildRows(taggedRow table.Row, schema tcsv.Schema) []table.Row {
+	rows := make([]table.Row, 0, len(taggedRow)+1)
+	var idx int
+	for _, col := range schema.Columns {
+		if col.Label != "" {
+			rows = append(rows, table.Row{col.Label, strings.TrimSpace(ansi.Strip(taggedRow[idx].(string)))})
+			idx++
+		}
+	}
+	return append(rows, table.Row{"Tag", taggedRow[len(taggedRow)-1]})
 }
 
 func alignString(s string, width int, position lipgloss.Position) string {
@@ -220,65 +245,4 @@ func alignString(s string, width int, position lipgloss.Position) string {
 
 func alignFloat(f float64, width int, position lipgloss.Position) string {
 	return alignString(strconv.FormatFloat(f, 'f', 2, 64), width, position)
-}
-
-func loadStatementsCmd(r repo.Repo, tagRules []statements.TagRule, key string) tea.Cmd {
-	return func() tea.Msg {
-		body, err := r.Get(key)
-		if err != nil {
-			return errorMsg{err: fmt.Errorf("read: %w", err)}
-		}
-		f, err := statements.Schemas.Parse(bytes.NewBuffer(body))
-		if err != nil {
-			return errorMsg{err: fmt.Errorf("parse: %w", err)}
-		}
-		taggedStatements, err := statements.Tag(f.Rows, f.Schema, tagRules)
-		if err != nil {
-			return errorMsg{err: fmt.Errorf("tag: %w", err)}
-		}
-
-		return loadStatementsMsg{taggedStatements: taggedStatements, file: f}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-type summaryView struct {
-	*table.Table
-}
-
-func newSummaryView(rows []table.Row) *summaryView {
-	return &summaryView{
-		Table: table.NewTable(
-			"summary",
-			table.Columns{
-				{Name: "Tag"},
-				{Name: "Amount", RowStyle: table.CellStyle{Style: lipgloss.NewStyle().Align(lipgloss.Right)}},
-			},
-			rows,
-			tableStyles,
-			table.DefaultKeyMap(),
-		),
-	}
-}
-
-func (sv *summaryView) Init() tea.Cmd {
-	return nil
-}
-
-//func (sv *summaryView) Update(msg tea.Msg) tea.Cmd {
-//	return sv.Table.Update(msg)
-//}
-
-func summarizeStatements(statements []statements.TaggedRow, schema tcsv.Schema) (map[string]float64, []string) {
-	summary := make(map[string]float64)
-	tags := make(map[string]struct{})
-	for _, statement := range statements {
-		summary[statement.Tag] += schema.ToMap(statement.Row)["Amount"].(float64)
-		tags[statement.Tag] = struct{}{}
-	}
-	sortedTags := slices.Collect(maps.Keys(tags))
-	slices.Sort(sortedTags)
-
-	return summary, sortedTags
 }

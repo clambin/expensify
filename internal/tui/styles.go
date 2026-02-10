@@ -30,4 +30,12 @@ var (
 		Title:  lipgloss.NewStyle().Foreground(colors.Grey74).Bold(false),
 		Border: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()),
 	}
+
+	statusStyles = struct {
+		Good  lipgloss.Style
+		Error lipgloss.Style
+	}{
+		Good:  lipgloss.NewStyle().Foreground(colors.White).Background(colors.Aqua),
+		Error: lipgloss.NewStyle().Foreground(colors.White).Background(colors.DarkRed),
+	}
 )

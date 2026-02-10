@@ -1,61 +1,91 @@
 package tui
 
 import (
-	"codeberg.org/clambin/bubbles/frame"
+	"fmt"
+
 	"codeberg.org/clambin/bubbles/table"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/clambin/expensify/internal/repo"
+	"github.com/clambin/expensify/internal/statements"
 )
 
 type repoView struct {
 	*table.Table
 	repo.Repo
 	RepoKeyMap
+	tagRules []statements.TagRule
 }
 
-func newRepoView(rows []table.Row, repo repo.Repo, keyMap RepoKeyMap) *repoView {
+func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap) *repoView {
 	return &repoView{
 		Table: table.NewTable(
 			"files",
 			[]table.Column{{Name: "Name"}},
-			rows,
+			nil,
 			tableStyles,
 			table.DefaultKeyMap(),
 		),
-		Repo:       repo,
+		Repo:       r,
+		tagRules:   tagRules,
 		RepoKeyMap: keyMap,
 	}
 }
 
 func (rv *repoView) Init() tea.Cmd {
-	return nil
+	return tea.Batch(
+		rv.Table.Init(),
+		func() tea.Msg { return statusMsg{text: "Loading files ...", showSpinner: true} },
+		rv.loadRepoFilesCmd(),
+	)
 }
 
 func (rv *repoView) Update(msg tea.Msg) tea.Cmd {
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
+	case populateRepoFilesMsg:
+		rows := make([]table.Row, len(msg.files))
+		for i, f := range msg.files {
+			rows[i] = table.Row{f}
+		}
+		rv.SetRows(rows)
+		return func() tea.Msg { return statusMsg{} }
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, rv.Open):
-			return func() tea.Msg { return openStatementsMsg{name: rv.SelectedRow[0].(string)} }
+			return tea.Batch(
+				func() tea.Msg { return statusMsg{text: "Loading statements file ...", showSpinner: true} },
+				rv.openStatementsFileCmd(rv.SelectedRow[0].(string)),
+				func() tea.Msg { return setActivePaneMsg(summaryPane) },
+			)
+		case key.Matches(msg, rv.Reload):
+			return tea.Batch(
+				func() tea.Msg { return statusMsg{text: "Loading files ...", showSpinner: true} },
+				rv.loadRepoFilesCmd(),
+			)
 		default:
-			cmd = rv.Table.Update(msg)
-			return cmd
+			return rv.Table.Update(msg)
 		}
 	default:
-		cmd = rv.Table.Update(msg)
+		return rv.Table.Update(msg)
 	}
-	return cmd
 }
 
-func (rv *repoView) View() string {
-	return frame.Draw("files", lipgloss.Center, rv.Table.View(), frameStyles)
+func (rv *repoView) loadRepoFilesCmd() tea.Cmd {
+	return func() tea.Msg {
+		files, err := rv.List()
+		if err != nil {
+			return errorMsg(fmt.Errorf("error loading files: %w", err))
+		}
+		return populateRepoFilesMsg{files: files}
+	}
 }
 
-func (rv *repoView) SetSize(width, height int) {
-	width -= frameStyles.Border.GetHorizontalBorderSize()
-	height -= frameStyles.Border.GetVerticalBorderSize()
-	rv.Table.SetSize(width, height)
+func (rv *repoView) openStatementsFileCmd(key string) tea.Cmd {
+	return func() tea.Msg {
+		taggedStatements, file, err := statements.Open(rv.Repo, key, rv.tagRules)
+		if err != nil {
+			return errorMsg(fmt.Errorf("open: %w", err))
+		}
+		return populateStatementsMsg{taggedStatements: taggedStatements, file: file}
+	}
 }

@@ -6,29 +6,42 @@ import (
 	"github.com/clambin/expensify/tcsv"
 )
 
-type errorMsg struct {
-	err error
+// setActivePaneMsg sets the active pane in the UI
+type setActivePaneMsg activePane
+
+// statusMsg updates the status bar
+type statusMsg struct {
+	text        string
+	error       bool
+	showSpinner bool
 }
 
-// openStatementsMsg opens a statement file
-type openStatementsMsg struct {
-	name string
+func errorMsg(err error) statusMsg {
+	return statusMsg{text: err.Error(), error: true}
 }
 
-// loadStatementsMsg loads the statements from the file requested by openStatementsMsg
-type loadStatementsMsg struct {
+// populateRepoFilesMsg populates the list of statement files
+type populateRepoFilesMsg struct {
+	files []string
+}
+
+// populateStatementsMsg contains the loaded statements and is used to populate the summary and statements views
+type populateStatementsMsg struct {
 	taggedStatements []statements.TaggedRow
 	file             tcsv.File
 }
 
-// closeStatementsMsg indicates the user has closed the statement file
-type closeStatementsMsg struct{}
+// showStatementsMsg shows the statements in the statements view
+type showStatementsMsg struct {
+	statements []statements.TaggedRow
+}
 
-// openDetailsMsg opens the details view for the given row
-type openDetailsMsg struct {
+// setStatementsModeMsg sets the mode of the statements view.
+// currently, either list or details is supported
+type setStatementsModeMsg statementsMode
+
+// openStatementDetailsMsg opens the details view for the given row
+type openStatementDetailsMsg struct {
 	taggedRow table.Row
 	schema    tcsv.Schema
 }
-
-// closeDetailsMsg indicates the user has closed the details view
-type closeDetailsMsg struct{}

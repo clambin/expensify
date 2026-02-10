@@ -18,10 +18,7 @@ var (
 			if err != nil {
 				return err
 			}
-			model, err := tui.New(repo, cfg.Rules, tui.DefaultKeyMap())
-			if err != nil {
-				return fmt.Errorf("failed to create application: %w", err)
-			}
+			model := tui.New(repo, cfg.Rules, tui.DefaultKeyMap())
 			_, err = tea.NewProgram(model, tea.WithAltScreen(), tea.WithoutCatchPanics()).Run()
 			return err
 		},

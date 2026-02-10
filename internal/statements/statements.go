@@ -1,6 +1,12 @@
 package statements
 
-import "github.com/clambin/expensify/tcsv"
+import (
+	"bytes"
+	"fmt"
+
+	"github.com/clambin/expensify/internal/repo"
+	"github.com/clambin/expensify/tcsv"
+)
 
 var Schemas = tcsv.Schemas{
 	"bnp-debit": {
@@ -33,4 +39,20 @@ var Schemas = tcsv.Schemas{
 			{Header: "null", ColumnType: tcsv.IgnoreColumn{}},
 		},
 	},
+}
+
+func Open(r repo.Repo, key string, tagRules TagRules) ([]TaggedRow, tcsv.File, error) {
+	body, err := r.Get(key)
+	if err != nil {
+		return nil, tcsv.File{}, fmt.Errorf("read: %w", err)
+	}
+	f, err := Schemas.Parse(bytes.NewBuffer(body))
+	if err != nil {
+		return nil, tcsv.File{}, fmt.Errorf("parse: %w", err)
+	}
+	taggedStatements, err := Tag(f.Rows, f.Schema, tagRules)
+	if err != nil {
+		return nil, tcsv.File{}, fmt.Errorf("tag: %w", err)
+	}
+	return taggedStatements, f, nil
 }
