@@ -1,6 +1,6 @@
 module github.com/clambin/expensify
 
-go 1.25
+go 1.26
 
 require (
 	codeberg.org/clambin/bubbles v0.7.0
