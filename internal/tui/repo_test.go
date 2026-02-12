@@ -50,8 +50,7 @@ func TestRepoView_loadRepoFilesCmd(t *testing.T) {
 	assert.Equal(t, "file1.csv", rv.(repoView).SelectedRow[0])
 
 	// open the selected file. this should fire off messages to load the file and switch to the summary view
-	var cmd tea.Cmd
-	rv, cmd = rv.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	_, cmd := rv.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	require.NotNil(t, cmd)
 	msg := cmd()
 	require.IsType(t, tea.BatchMsg{}, msg)
@@ -80,8 +79,7 @@ func TestRepoView_reload(t *testing.T) {
 	r := fakeRepo{files: map[string][]byte{"file1.csv": nil}}
 
 	rv := newRepoView(r, nil, defaultRepoKeyMap())
-	var cmd tea.Cmd
-	rv, cmd = rv.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
+	_, cmd := rv.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
 	msg := cmd()
 	require.IsType(t, tea.BatchMsg{}, msg)
 	for _, c := range msg.(tea.BatchMsg) {

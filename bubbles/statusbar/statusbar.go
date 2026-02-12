@@ -17,10 +17,10 @@ type Style map[bool]lipgloss.Style
 var _ tea.Model = Model{}
 
 type Model struct {
-	msg     Msg
-	width   int
-	spinner spinner.Model
 	style   Style
+	msg     Msg
+	spinner spinner.Model
+	width   int
 }
 
 func New(style Style, opts ...spinner.Option) Model {
