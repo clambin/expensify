@@ -5,7 +5,6 @@ import (
 	"slices"
 
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -55,7 +54,7 @@ func (sv *summaryView) Update(msg tea.Msg) tea.Cmd {
 				func() tea.Msg {
 					return showStatementsMsg{filteredStatements}
 				},
-				func() tea.Msg { return setActivePaneMsg(statementsPane) },
+				func() tea.Msg { return setActivePaneMsg{statementsPane} },
 			)
 		default:
 			return sv.Table.Update(msg)
@@ -102,24 +101,4 @@ func summarizeStatements(statements []statements.TaggedRow, schema tcsv.Schema) 
 	slices.Sort(sortedTags)
 
 	return summary, sortedTags
-}
-
-var _ help.KeyMap = SummaryKeyMap{}
-
-type SummaryKeyMap struct {
-	Open key.Binding
-}
-
-func defaultSummaryKeyMap() SummaryKeyMap {
-	return SummaryKeyMap{
-		Open: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Open statements for the selected tag")),
-	}
-}
-
-func (s SummaryKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{s.Open}
-}
-
-func (s SummaryKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{s.ShortHelp()}
 }

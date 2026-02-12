@@ -55,7 +55,7 @@ func (rv *repoView) Update(msg tea.Msg) tea.Cmd {
 			return tea.Batch(
 				func() tea.Msg { return statusMsg{text: "Loading statements file ...", showSpinner: true} },
 				rv.openStatementsFileCmd(rv.SelectedRow[0].(string)),
-				func() tea.Msg { return setActivePaneMsg(summaryPane) },
+				func() tea.Msg { return setActivePaneMsg{summaryPane} },
 			)
 		case key.Matches(msg, rv.Reload):
 			return tea.Batch(

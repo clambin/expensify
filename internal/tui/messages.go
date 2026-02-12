@@ -7,7 +7,9 @@ import (
 )
 
 // setActivePaneMsg sets the active pane in the UI
-type setActivePaneMsg activePane
+type setActivePaneMsg struct {
+	paneID
+}
 
 // statusMsg updates the status bar
 type statusMsg struct {

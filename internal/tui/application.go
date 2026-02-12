@@ -10,14 +10,16 @@ import (
 	"github.com/clambin/expensify/internal/statements"
 )
 
-type activePane int
+// paneID identifies the different panes in the application
+type paneID int
 
 const (
-	repoPane activePane = iota
+	repoPane paneID = iota
 	summaryPane
 	statementsPane
 )
 
+// pane is the expected interface for panes in the application
 type pane interface {
 	Init() tea.Cmd
 	Update(msg tea.Msg) tea.Cmd
@@ -33,12 +35,13 @@ var (
 
 type Application struct {
 	help       help.Model
-	panes      map[activePane]pane
+	panes      map[paneID]pane
 	statusLine *statusLine
 	keyMap     ApplicationKeyMap
-	activePane activePane
+	activePane paneID
 	width      int
 	height     int
+	fullscreen bool
 }
 
 func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model {
@@ -48,7 +51,7 @@ func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model
 	return Application{
 		keyMap: keyMap.ApplicationKeyMap,
 		help:   h,
-		panes: map[activePane]pane{
+		panes: map[paneID]pane{
 			repoPane:       newRepoView(repo, tagRules, keyMap.RepoKeyMap),
 			summaryPane:    newSummaryView(keyMap.SummaryKeyMap),
 			statementsPane: newStatementsView(keyMap.StatementsListKeyMap, keyMap.StatementsDetailsKeyMap),
@@ -68,53 +71,89 @@ func (a Application) Init() tea.Cmd {
 }
 
 func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
-		borderWidth := frameStyles.Border.GetHorizontalBorderSize()
-		borderHeight := frameStyles.Border.GetVerticalBorderSize()
-
-		workingHeight := a.height - 2 // one for status line, one for help
-
-		headerHeight := workingHeight / 3
-		a.panes[repoPane].SetSize(a.width/2-borderWidth, headerHeight-borderHeight)
-		a.panes[summaryPane].SetSize(a.width/2-borderWidth, headerHeight-borderHeight)
-		a.panes[statementsPane].SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
-		a.statusLine.SetSize(a.width, 1)
-		a.help.Width = a.width
+		return a.sizePanes(), nil
 	case setActivePaneMsg:
-		a.activePane = activePane(msg)
+		a.activePane = msg.paneID
+		return a.sizePanes(), nil
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, a.keyMap.Quit):
-			cmd = tea.Quit
+			return a, tea.Quit
 		case key.Matches(msg, a.keyMap.Next):
-			cmd = func() tea.Msg {
-				return setActivePaneMsg((a.activePane + 1) % 3)
-			}
+			return a, func() tea.Msg { return setActivePaneMsg{paneID: (a.activePane + 1) % 3} }
 		case key.Matches(msg, a.keyMap.Previous):
-			cmd = func() tea.Msg {
-				return setActivePaneMsg((a.activePane - 1 + 3) % 3)
-			}
+			return a, func() tea.Msg { return setActivePaneMsg{paneID: (a.activePane - 1 + 3) % 3} }
 		case key.Matches(msg, a.keyMap.ClearStatus):
-			cmd = func() tea.Msg { return statusMsg{} }
+			return a, func() tea.Msg { return statusMsg{} }
+		case key.Matches(msg, a.keyMap.FullScreenOn):
+			a.fullscreen = true
+			return a.sizePanes(), nil
+		case key.Matches(msg, a.keyMap.FullScreenOff):
+			a.fullscreen = false
+			return a.sizePanes(), nil
 		default:
-			cmd = a.panes[a.activePane].Update(msg)
+			return a, a.panes[a.activePane].Update(msg)
 		}
 	default:
 		cmds := make([]tea.Cmd, 0, len(a.panes))
 		for _, c := range a.panes {
 			cmds = append(cmds, c.Update(msg))
 		}
-		cmds = append(cmds, a.statusLine.Update(msg))
-		cmd = tea.Batch(cmds...)
+		return a, tea.Batch(append(cmds, a.statusLine.Update(msg))...)
 	}
-	return a, cmd
 }
 
 func (a Application) View() string {
-	s := map[activePane]frame.Styles{
+	var top string
+	if a.fullscreen {
+		top = a.panes[a.activePane].View()
+
+	} else {
+		top = a.viewPaned()
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Top,
+		top,
+		a.statusLine.View(),
+		a.help.View(a),
+	)
+}
+
+func (a Application) ShortHelp() []key.Binding {
+	return append(a.keyMap.ShortHelp(), a.panes[a.activePane].ShortHelp()...)
+}
+
+func (a Application) FullHelp() [][]key.Binding {
+	return [][]key.Binding{a.ShortHelp()}
+}
+
+func (a Application) sizePanes() Application {
+	borderWidth := frameStyles.Border.GetHorizontalBorderSize()
+	borderHeight := frameStyles.Border.GetVerticalBorderSize()
+
+	workingHeight := a.height - 2 // one for status line, one for help
+
+	if a.fullscreen {
+		a.panes[a.activePane].SetSize(a.width, workingHeight)
+		return a
+	}
+
+	headerWidth := a.width / 2
+	headerHeight := workingHeight / 3
+
+	a.panes[repoPane].SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
+	a.panes[summaryPane].SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
+	a.panes[statementsPane].SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
+	a.statusLine.SetSize(a.width, 1)
+	a.help.Width = a.width
+	return a
+}
+
+func (a Application) viewPaned() string {
+	s := map[paneID]frame.Styles{
 		repoPane:       frameStyles,
 		summaryPane:    frameStyles,
 		statementsPane: frameStyles,
@@ -127,15 +166,5 @@ func (a Application) View() string {
 			frame.Draw("summary", lipgloss.Center, a.panes[summaryPane].View(), s[summaryPane]),
 		),
 		frame.Draw("statements", lipgloss.Center, a.panes[statementsPane].View(), s[statementsPane]),
-		a.statusLine.View(),
-		a.help.View(a),
 	)
-}
-
-func (a Application) ShortHelp() []key.Binding {
-	return append(a.keyMap.ShortHelp(), a.panes[a.activePane].ShortHelp()...)
-}
-
-func (a Application) FullHelp() [][]key.Binding {
-	return [][]key.Binding{a.ShortHelp()}
 }

@@ -32,27 +32,31 @@ func DefaultKeyMap() KeyMap {
 }
 
 type ApplicationKeyMap struct {
-	Quit        key.Binding
-	Next        key.Binding
-	Previous    key.Binding
-	ClearStatus key.Binding
+	Quit          key.Binding
+	Next          key.Binding
+	Previous      key.Binding
+	ClearStatus   key.Binding
+	FullScreenOn  key.Binding
+	FullScreenOff key.Binding
 }
 
 func defaultApplicationKeyMap() ApplicationKeyMap {
 	return ApplicationKeyMap{
-		Quit:        key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "Quit the application")),
-		Next:        key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "Select next file")),
-		Previous:    key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "Select previous file")),
-		ClearStatus: key.NewBinding(key.WithKeys("alt+c"), key.WithHelp("alt+c", "Clear the status bar")),
+		Quit:          key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "Quit the application")),
+		Next:          key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "Select next file")),
+		Previous:      key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "Select previous file")),
+		ClearStatus:   key.NewBinding(key.WithKeys("alt+c"), key.WithHelp("alt+c", "Clear the status bar")),
+		FullScreenOn:  key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "Enter full screen mode")),
+		FullScreenOff: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "Exit full screen mode")),
 	}
 }
 
-func (a ApplicationKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{a.Quit, a.ClearStatus}
+func (m ApplicationKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{m.Quit, m.ClearStatus, m.FullScreenOn, m.FullScreenOff}
 }
 
-func (a ApplicationKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{a.ShortHelp()}
+func (m ApplicationKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{m.ShortHelp()}
 }
 
 type RepoKeyMap struct {
@@ -67,12 +71,32 @@ func defaultRepoKeyMap() RepoKeyMap {
 	}
 }
 
-func (r RepoKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{r.Open, r.Reload}
+func (m RepoKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{m.Open, m.Reload}
 }
 
-func (r RepoKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{r.ShortHelp()}
+func (m RepoKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{m.ShortHelp()}
+}
+
+var _ help.KeyMap = SummaryKeyMap{}
+
+type SummaryKeyMap struct {
+	Open key.Binding
+}
+
+func defaultSummaryKeyMap() SummaryKeyMap {
+	return SummaryKeyMap{
+		Open: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Open statements for the selected tag")),
+	}
+}
+
+func (m SummaryKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{m.Open}
+}
+
+func (m SummaryKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{m.ShortHelp()}
 }
 
 type StatementsListKeyMap struct {
@@ -85,12 +109,12 @@ func defaultStatementsListKeyMap() StatementsListKeyMap {
 	}
 }
 
-func (s StatementsListKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{s.Details}
+func (m StatementsListKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{m.Details}
 }
 
-func (s StatementsListKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{s.ShortHelp()}
+func (m StatementsListKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{m.ShortHelp()}
 }
 
 type StatementsDetailsKeyMap struct {
@@ -103,10 +127,10 @@ func defaultStatementsDetailsKeyMap() StatementsDetailsKeyMap {
 	}
 }
 
-func (d StatementsDetailsKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{d.Close}
+func (m StatementsDetailsKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{m.Close}
 }
 
-func (d StatementsDetailsKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{d.ShortHelp()}
+func (m StatementsDetailsKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{m.ShortHelp()}
 }

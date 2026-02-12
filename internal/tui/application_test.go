@@ -69,7 +69,7 @@ func TestApplication_Update_Navigation(t *testing.T) {
 		app, cmd = app.Update(key)
 		require.NotNil(t, cmd)
 		msg := cmd()
-		require.IsType(t, setActivePaneMsg(0), msg)
+		require.IsType(t, setActivePaneMsg{}, msg)
 		app, _ = app.Update(msg)
 		return app
 	}
@@ -77,13 +77,13 @@ func TestApplication_Update_Navigation(t *testing.T) {
 	app := New(fakeRepo{}, nil, DefaultKeyMap())
 
 	// Next pane
-	for _, expectedPane := range []activePane{repoPane, summaryPane, statementsPane, repoPane} {
+	for _, expectedPane := range []paneID{repoPane, summaryPane, statementsPane, repoPane} {
 		assert.Equal(t, expectedPane, app.(Application).activePane)
 		app = move(t, app, tea.KeyMsg{Type: tea.KeyTab})
 	}
 
 	// Previous pane
-	for _, expectedPane := range []activePane{summaryPane, repoPane, statementsPane} {
+	for _, expectedPane := range []paneID{summaryPane, repoPane, statementsPane} {
 		assert.Equal(t, expectedPane, app.(Application).activePane)
 		app = move(t, app, tea.KeyMsg{Type: tea.KeyShiftTab})
 	}
