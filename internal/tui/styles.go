@@ -31,11 +31,8 @@ var (
 		Border: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()),
 	}
 
-	statusStyles = struct {
-		Good  lipgloss.Style
-		Error lipgloss.Style
-	}{
-		Good:  lipgloss.NewStyle().Foreground(colors.White).Background(colors.Aqua),
-		Error: lipgloss.NewStyle().Foreground(colors.White).Background(colors.DarkRed),
+	statusStyles = map[bool]lipgloss.Style{
+		false: lipgloss.NewStyle().Foreground(colors.White).Background(colors.Aqua),
+		true:  lipgloss.NewStyle().Foreground(colors.White).Background(colors.DarkRed),
 	}
 )

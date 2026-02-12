@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/clambin/expensify/internal/statements"
+	"github.com/clambin/expensify/internal/tui/statusbar"
 	"github.com/clambin/expensify/tcsv"
 )
 
@@ -45,7 +46,7 @@ func (sv *summaryView) Update(msg tea.Msg) tea.Cmd {
 		sv.taggedStatements = msg.taggedStatements
 		sv.schema = msg.file.Schema
 		sv.SetRows(sv.buildRows())
-		return func() tea.Msg { return statusMsg{} }
+		return func() tea.Msg { return statusbar.Msg{} }
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, sv.Open):

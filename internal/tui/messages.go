@@ -11,17 +11,6 @@ type setActivePaneMsg struct {
 	paneID
 }
 
-// statusMsg updates the status bar
-type statusMsg struct {
-	text        string
-	error       bool
-	showSpinner bool
-}
-
-func errorMsg(err error) statusMsg {
-	return statusMsg{text: err.Error(), error: true}
-}
-
 // populateRepoFilesMsg populates the list of statement files
 type populateRepoFilesMsg struct {
 	files []string

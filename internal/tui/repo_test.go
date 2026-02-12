@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/clambin/expensify/internal/tui/statusbar"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,8 +70,8 @@ func TestRepoView_loadRepoFilesCmd_Error(t *testing.T) {
 	cmd := rv.loadRepoFilesCmd()
 	require.NotNil(t, cmd)
 	msg := cmd()
-	require.IsType(t, statusMsg{}, msg)
-	assert.Equal(t, "error loading files: "+assert.AnError.Error(), msg.(statusMsg).text)
+	require.IsType(t, statusbar.Msg{}, msg)
+	assert.Equal(t, "Error loading files: "+assert.AnError.Error(), msg.(statusbar.Msg).Text)
 }
 
 // TestRepoView tests reloading the files
@@ -95,8 +96,8 @@ func TestRepoView_openStatementsFileCmd(t *testing.T) {
 
 	// invalid file
 	msg := rv.openStatementsFileCmd("file1.csv")()
-	require.IsType(t, statusMsg{}, msg)
-	require.True(t, msg.(statusMsg).error)
+	require.IsType(t, statusbar.Msg{}, msg)
+	require.True(t, msg.(statusbar.Msg).Warn)
 
 	// valid file
 	r.files["file1.csv"] = []byte(`null,null,null,null,null,null,null

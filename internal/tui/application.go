@@ -4,10 +4,12 @@ import (
 	"codeberg.org/clambin/bubbles/frame"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"
+	"github.com/clambin/expensify/internal/tui/statusbar"
 )
 
 // paneID identifies the different panes in the application
@@ -36,7 +38,7 @@ var (
 type Application struct {
 	help       help.Model
 	panes      map[paneID]pane
-	statusLine *statusLine
+	statusLine tea.Model
 	keyMap     ApplicationKeyMap
 	activePane paneID
 	width      int
@@ -56,7 +58,7 @@ func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model
 			summaryPane:    newSummaryView(keyMap.SummaryKeyMap),
 			statementsPane: newStatementsView(keyMap.StatementsListKeyMap, keyMap.StatementsDetailsKeyMap),
 		},
-		statusLine: newStatusLine(),
+		statusLine: statusbar.New(statusStyles, spinner.WithSpinner(spinner.Dot)),
 		activePane: repoPane,
 	}
 }
@@ -75,6 +77,10 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
 		return a.sizePanes(), nil
+	case statusbar.Msg:
+		var cmd tea.Cmd
+		a.statusLine, cmd = a.statusLine.Update(msg)
+		return a, cmd
 	case setActivePaneMsg:
 		a.activePane = msg.paneID
 		return a.sizePanes(), nil
@@ -87,7 +93,7 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, a.keyMap.Previous):
 			return a, func() tea.Msg { return setActivePaneMsg{paneID: (a.activePane - 1 + 3) % 3} }
 		case key.Matches(msg, a.keyMap.ClearStatus):
-			return a, func() tea.Msg { return statusMsg{} }
+			return a, func() tea.Msg { return statusbar.Msg{} }
 		case key.Matches(msg, a.keyMap.ToggleFullscreen):
 			a.fullscreen = !a.fullscreen
 			return a.sizePanes(), nil
@@ -99,7 +105,7 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for _, c := range a.panes {
 			cmds = append(cmds, c.Update(msg))
 		}
-		return a, tea.Batch(append(cmds, a.statusLine.Update(msg))...)
+		return a, tea.Batch(cmds...)
 	}
 }
 
@@ -114,7 +120,7 @@ func (a Application) View() string {
 
 	return lipgloss.JoinVertical(lipgloss.Top,
 		top,
-		a.statusLine.View(),
+		a.statusLine.(statusbar.Model).Width(a.width).View(),
 		a.help.View(a),
 	)
 }
@@ -144,7 +150,7 @@ func (a Application) sizePanes() Application {
 	a.panes[repoPane].SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
 	a.panes[summaryPane].SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
 	a.panes[statementsPane].SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
-	a.statusLine.SetSize(a.width, 1)
+	a.statusLine.(statusbar.Model).Width(a.width).View()
 	a.help.Width = a.width
 	return a
 }

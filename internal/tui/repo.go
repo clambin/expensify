@@ -1,13 +1,12 @@
 package tui
 
 import (
-	"fmt"
-
 	"codeberg.org/clambin/bubbles/table"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"
+	"github.com/clambin/expensify/internal/tui/statusbar"
 )
 
 type repoView struct {
@@ -35,7 +34,7 @@ func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap) 
 func (rv *repoView) Init() tea.Cmd {
 	return tea.Batch(
 		rv.Table.Init(),
-		func() tea.Msg { return statusMsg{text: "Loading files ...", showSpinner: true} },
+		func() tea.Msg { return statusbar.Msg{Text: "Loading files ...", Spinner: true} },
 		rv.loadRepoFilesCmd(),
 	)
 }
@@ -48,18 +47,18 @@ func (rv *repoView) Update(msg tea.Msg) tea.Cmd {
 			rows[i] = table.Row{f}
 		}
 		rv.SetRows(rows)
-		return func() tea.Msg { return statusMsg{} }
+		return func() tea.Msg { return statusbar.Msg{} }
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, rv.Open):
 			return tea.Batch(
-				func() tea.Msg { return statusMsg{text: "Loading statements file ...", showSpinner: true} },
+				func() tea.Msg { return statusbar.Msg{Text: "Loading statements file ...", Spinner: true} },
 				rv.openStatementsFileCmd(rv.SelectedRow[0].(string)),
 				func() tea.Msg { return setActivePaneMsg{summaryPane} },
 			)
 		case key.Matches(msg, rv.Reload):
 			return tea.Batch(
-				func() tea.Msg { return statusMsg{text: "Loading files ...", showSpinner: true} },
+				func() tea.Msg { return statusbar.Msg{Text: "Loading files ...", Spinner: true} },
 				rv.loadRepoFilesCmd(),
 			)
 		default:
@@ -74,7 +73,7 @@ func (rv *repoView) loadRepoFilesCmd() tea.Cmd {
 	return func() tea.Msg {
 		files, err := rv.List()
 		if err != nil {
-			return errorMsg(fmt.Errorf("error loading files: %w", err))
+			return statusbar.Msg{Text: "Error loading files: " + err.Error(), Warn: true}
 		}
 		return populateRepoFilesMsg{files: files}
 	}
@@ -84,7 +83,7 @@ func (rv *repoView) openStatementsFileCmd(key string) tea.Cmd {
 	return func() tea.Msg {
 		taggedStatements, file, err := statements.Open(rv.Repo, key, rv.tagRules)
 		if err != nil {
-			return errorMsg(fmt.Errorf("open: %w", err))
+			return statusbar.Msg{Text: "Error loading file " + key + ": " + err.Error(), Warn: true}
 		}
 		return populateStatementsMsg{taggedStatements: taggedStatements, file: file}
 	}
