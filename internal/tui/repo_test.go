@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/clambin/expensify/internal/tui/statusbar"
+	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

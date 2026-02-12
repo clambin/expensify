@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"
-	"github.com/clambin/expensify/internal/tui/statusbar"
 )
 
 // paneID identifies the different panes in the application

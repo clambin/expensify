@@ -4,9 +4,9 @@ import (
 	"codeberg.org/clambin/bubbles/table"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"
-	"github.com/clambin/expensify/internal/tui/statusbar"
 )
 
 type repoView struct {

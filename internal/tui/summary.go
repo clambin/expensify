@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/clambin/expensify/internal/statements"
-	"github.com/clambin/expensify/internal/tui/statusbar"
 	"github.com/clambin/expensify/tcsv"
 )
 
