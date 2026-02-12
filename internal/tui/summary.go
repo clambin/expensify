@@ -13,6 +13,8 @@ import (
 	"github.com/clambin/expensify/tcsv"
 )
 
+var _ pane = summaryView{}
+
 type summaryView struct {
 	*table.Table
 	SummaryKeyMap
@@ -20,8 +22,8 @@ type summaryView struct {
 	schema           tcsv.Schema
 }
 
-func newSummaryView(keyMap SummaryKeyMap) *summaryView {
-	return &summaryView{
+func newSummaryView(keyMap SummaryKeyMap) tea.Model {
+	return summaryView{
 		Table: table.NewTable(
 			"summary",
 			table.Columns{
@@ -36,36 +38,40 @@ func newSummaryView(keyMap SummaryKeyMap) *summaryView {
 	}
 }
 
-func (sv *summaryView) Init() tea.Cmd {
+func (sv summaryView) Init() tea.Cmd {
 	return nil
 }
 
-func (sv *summaryView) Update(msg tea.Msg) tea.Cmd {
+func (sv summaryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case populateStatementsMsg:
 		sv.taggedStatements = msg.taggedStatements
 		sv.schema = msg.file.Schema
-		sv.SetRows(sv.buildRows())
-		return func() tea.Msg { return statusbar.Msg{} }
+		sv.SetRows(buildRows(sv))
+		return sv, func() tea.Msg { return statusbar.Msg{} }
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, sv.Open):
-			filteredStatements := sv.filterStatements(sv.SelectedRow[0].(string))
-			return tea.Batch(
+			return sv, tea.Batch(
 				func() tea.Msg {
-					return showStatementsMsg{filteredStatements}
+					return showStatementsMsg{filterStatements(sv.SelectedRow[0].(string), sv.taggedStatements)}
 				},
 				func() tea.Msg { return setActivePaneMsg{statementsPane} },
 			)
 		default:
-			return sv.Table.Update(msg)
+			return sv, sv.Table.Update(msg)
 		}
 	default:
-		return sv.Table.Update(msg)
+		return sv, sv.Table.Update(msg)
 	}
 }
 
-func (sv *summaryView) buildRows() []table.Row {
+func (sv summaryView) SetSize(width, height int) tea.Model {
+	sv.Table.SetSize(width, height)
+	return sv
+}
+
+func buildRows(sv summaryView) []table.Row {
 	vals, keys := summarizeStatements(sv.taggedStatements, sv.schema)
 	var total float64
 
@@ -81,9 +87,9 @@ func (sv *summaryView) buildRows() []table.Row {
 	return rows
 }
 
-func (sv *summaryView) filterStatements(tag string) []statements.TaggedRow {
-	filteredStatements := make([]statements.TaggedRow, 0, len(sv.taggedStatements))
-	for _, statement := range sv.taggedStatements {
+func filterStatements(tag string, taggedStatements []statements.TaggedRow) []statements.TaggedRow {
+	filteredStatements := make([]statements.TaggedRow, 0, len(taggedStatements))
+	for _, statement := range taggedStatements {
 		if statement.Tag == tag {
 			filteredStatements = append(filteredStatements, statement)
 		}

@@ -12,6 +12,12 @@ import (
 	"github.com/clambin/expensify/internal/statements"
 )
 
+type pane interface {
+	tea.Model
+	help.KeyMap
+	SetSize(int, int) tea.Model
+}
+
 // paneID identifies the different panes in the application
 type paneID int
 
@@ -21,15 +27,6 @@ const (
 	statementsPane
 )
 
-// pane is the expected interface for panes in the application
-type pane interface {
-	Init() tea.Cmd
-	Update(msg tea.Msg) tea.Cmd
-	View() string
-	SetSize(width, height int)
-	help.KeyMap
-}
-
 var (
 	_ tea.Model   = Application{}
 	_ help.KeyMap = Application{}
@@ -37,7 +34,7 @@ var (
 
 type Application struct {
 	help       help.Model
-	panes      map[paneID]pane
+	panes      map[paneID]tea.Model
 	statusLine tea.Model
 	keyMap     ApplicationKeyMap
 	activePane paneID
@@ -53,7 +50,7 @@ func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model
 	return Application{
 		keyMap: keyMap.ApplicationKeyMap,
 		help:   h,
-		panes: map[paneID]pane{
+		panes: map[paneID]tea.Model{
 			repoPane:       newRepoView(repo, tagRules, keyMap.RepoKeyMap),
 			summaryPane:    newSummaryView(keyMap.SummaryKeyMap),
 			statementsPane: newStatementsView(keyMap.StatementsListKeyMap, keyMap.StatementsDetailsKeyMap),
@@ -98,12 +95,16 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.fullscreen = !a.fullscreen
 			return a.sizePanes(), nil
 		default:
-			return a, a.panes[a.activePane].Update(msg)
+			var cmd tea.Cmd
+			a.panes[a.activePane], cmd = a.panes[a.activePane].Update(msg)
+			return a, cmd
 		}
 	default:
 		cmds := make([]tea.Cmd, 0, len(a.panes))
-		for _, c := range a.panes {
-			cmds = append(cmds, c.Update(msg))
+		for pid := range a.panes {
+			var cmd tea.Cmd
+			a.panes[pid], cmd = a.panes[pid].Update(msg)
+			cmds = append(cmds, cmd)
 		}
 		return a, tea.Batch(cmds...)
 	}
@@ -126,7 +127,7 @@ func (a Application) View() string {
 }
 
 func (a Application) ShortHelp() []key.Binding {
-	return append(a.keyMap.ShortHelp(), a.panes[a.activePane].ShortHelp()...)
+	return append(a.keyMap.ShortHelp(), a.panes[a.activePane].(help.KeyMap).ShortHelp()...)
 }
 
 func (a Application) FullHelp() [][]key.Binding {
@@ -137,7 +138,7 @@ func (a Application) sizePanes() Application {
 	workingHeight := a.height - 2 // one for status line, one for help
 
 	if a.fullscreen {
-		a.panes[a.activePane].SetSize(a.width, workingHeight)
+		a.panes[a.activePane].(pane).SetSize(a.width, workingHeight)
 		return a
 	}
 
@@ -147,9 +148,9 @@ func (a Application) sizePanes() Application {
 	headerWidth := a.width / 2
 	headerHeight := workingHeight / 3
 
-	a.panes[repoPane].SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
-	a.panes[summaryPane].SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
-	a.panes[statementsPane].SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
+	a.panes[repoPane] = a.panes[repoPane].(pane).SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
+	a.panes[summaryPane] = a.panes[summaryPane].(pane).SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
+	a.panes[statementsPane] = a.panes[statementsPane].(pane).SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
 	a.statusLine.(statusbar.Model).Width(a.width).View()
 	a.help.Width = a.width
 	return a

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"codeberg.org/clambin/bubbles/table"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/clambin/expensify/internal/statements"
 	"github.com/clambin/expensify/tcsv"
 	"github.com/stretchr/testify/assert"
@@ -31,18 +32,18 @@ func TestSummarizeStatements(t *testing.T) {
 }
 
 func TestStatementsView_DetailsToggle(t *testing.T) {
-	sv := newStatementsView(defaultStatementsListKeyMap(), defaultStatementsDetailsKeyMap())
-	assert.Equal(t, statementsList, sv.mode)
+	var sv tea.Model = newStatementsView(defaultStatementsListKeyMap(), defaultStatementsDetailsKeyMap())
+	assert.Equal(t, statementsList, sv.(statementsView).mode)
 
 	// Open details
 	msg := openStatementDetailsMsg{
 		taggedRow: table.Row{"2024-01-01", "10.0", "Food"},
 		schema:    tcsv.Schema{},
 	}
-	sv.Update(msg)
-	assert.Equal(t, statementsList, sv.mode)
+	sv, _ = sv.Update(msg)
+	assert.Equal(t, statementsList, sv.(statementsView).mode)
 
 	// Close details
-	sv.Update(setStatementsModeMsg(statementsDetails))
-	assert.Equal(t, statementsDetails, sv.mode)
+	sv, _ = sv.Update(setStatementsModeMsg{statementsDetails})
+	assert.Equal(t, statementsDetails, sv.(statementsView).mode)
 }

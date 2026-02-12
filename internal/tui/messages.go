@@ -29,7 +29,9 @@ type showStatementsMsg struct {
 
 // setStatementsModeMsg sets the mode of the statements view.
 // currently, either list or details is supported
-type setStatementsModeMsg statementsMode
+type setStatementsModeMsg struct {
+	mode statementsMode
+}
 
 // openStatementDetailsMsg opens the details view for the given row
 type openStatementDetailsMsg struct {

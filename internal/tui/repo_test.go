@@ -28,13 +28,13 @@ func TestRepoView_Init(t *testing.T) {
 		if m2, ok := m.(populateRepoFilesMsg); ok {
 			assert.Equal(t, files, m2.files)
 		}
-		_ = rv.Update(m)
+		rv, _ = rv.Update(m)
 	}
 
 	// scroll down and check each file entry
 	for i := range files {
-		require.Equal(t, files[i], rv.SelectedRow[0])
-		_ = rv.Update(tea.KeyMsg{Type: tea.KeyDown})
+		require.Equal(t, files[i], rv.(repoView).SelectedRow[0])
+		rv, _ = rv.Update(tea.KeyMsg{Type: tea.KeyDown})
 	}
 }
 
@@ -44,13 +44,14 @@ func TestRepoView_loadRepoFilesCmd(t *testing.T) {
 	rv := newRepoView(r, nil, defaultRepoKeyMap())
 
 	// load the files
-	rv.Update(rv.loadRepoFilesCmd()())
+	rv, _ = rv.Update(loadRepoFilesCmd(r)())
 
 	// the first file should be selected
-	assert.Equal(t, "file1.csv", rv.SelectedRow[0])
+	assert.Equal(t, "file1.csv", rv.(repoView).SelectedRow[0])
 
 	// open the selected file. this should fire off messages to load the file and switch to the summary view
-	cmd := rv.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	var cmd tea.Cmd
+	rv, cmd = rv.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	require.NotNil(t, cmd)
 	msg := cmd()
 	require.IsType(t, tea.BatchMsg{}, msg)
@@ -65,9 +66,9 @@ func TestRepoView_loadRepoFilesCmd(t *testing.T) {
 // TestRepoView_loadRepoFilesCmd_Error validates a failed attempt to load the files
 func TestRepoView_loadRepoFilesCmd_Error(t *testing.T) {
 	r := fakeRepo{err: assert.AnError}
-	rv := newRepoView(r, nil, defaultRepoKeyMap())
+	//rv := newRepoView(r, nil, defaultRepoKeyMap())
 
-	cmd := rv.loadRepoFilesCmd()
+	cmd := loadRepoFilesCmd(r)
 	require.NotNil(t, cmd)
 	msg := cmd()
 	require.IsType(t, statusbar.Msg{}, msg)
@@ -79,7 +80,8 @@ func TestRepoView_reload(t *testing.T) {
 	r := fakeRepo{files: map[string][]byte{"file1.csv": nil}}
 
 	rv := newRepoView(r, nil, defaultRepoKeyMap())
-	cmd := rv.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
+	var cmd tea.Cmd
+	rv, cmd = rv.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
 	msg := cmd()
 	require.IsType(t, tea.BatchMsg{}, msg)
 	for _, c := range msg.(tea.BatchMsg) {
@@ -92,10 +94,10 @@ func TestRepoView_reload(t *testing.T) {
 // TestRepoView_openStatementsFileCmd tests loading a file from the repo
 func TestRepoView_openStatementsFileCmd(t *testing.T) {
 	r := fakeRepo{files: make(map[string][]byte)}
-	rv := newRepoView(&r, nil, defaultRepoKeyMap())
+	//rv := newRepoView(&r, nil, defaultRepoKeyMap())
 
 	// invalid file
-	msg := rv.openStatementsFileCmd("file1.csv")()
+	msg := openStatementsFileCmd(r, nil, "file1.csv")()
 	require.IsType(t, statusbar.Msg{}, msg)
 	require.True(t, msg.(statusbar.Msg).Warn)
 
@@ -103,7 +105,7 @@ func TestRepoView_openStatementsFileCmd(t *testing.T) {
 	r.files["file1.csv"] = []byte(`null,null,null,null,null,null,null
 28/01/2026,29/01/2026,"-81,40",EUR,Message 1,Wisselkoers##,Gerelateerde kost##
 `)
-	msg = rv.openStatementsFileCmd("file1.csv")()
+	msg = openStatementsFileCmd(r, nil, "file1.csv")()
 	require.IsType(t, populateStatementsMsg{}, msg)
 	assert.Len(t, msg.(populateStatementsMsg).taggedStatements, 1)
 	assert.Equal(t, "bnp-visa", msg.(populateStatementsMsg).file.SchemaName)

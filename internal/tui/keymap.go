@@ -45,7 +45,7 @@ func defaultApplicationKeyMap() ApplicationKeyMap {
 		Next:             key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "Select next file")),
 		Previous:         key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "Select previous file")),
 		ClearStatus:      key.NewBinding(key.WithKeys("alt+c"), key.WithHelp("alt+c", "Clear the status bar")),
-		ToggleFullscreen: key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "Enter full screen mode")),
+		ToggleFullscreen: key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "Toggle full screen mode")),
 	}
 }
 
