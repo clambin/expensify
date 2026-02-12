@@ -32,27 +32,25 @@ func DefaultKeyMap() KeyMap {
 }
 
 type ApplicationKeyMap struct {
-	Quit          key.Binding
-	Next          key.Binding
-	Previous      key.Binding
-	ClearStatus   key.Binding
-	FullScreenOn  key.Binding
-	FullScreenOff key.Binding
+	Quit             key.Binding
+	Next             key.Binding
+	Previous         key.Binding
+	ClearStatus      key.Binding
+	ToggleFullscreen key.Binding
 }
 
 func defaultApplicationKeyMap() ApplicationKeyMap {
 	return ApplicationKeyMap{
-		Quit:          key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "Quit the application")),
-		Next:          key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "Select next file")),
-		Previous:      key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "Select previous file")),
-		ClearStatus:   key.NewBinding(key.WithKeys("alt+c"), key.WithHelp("alt+c", "Clear the status bar")),
-		FullScreenOn:  key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "Enter full screen mode")),
-		FullScreenOff: key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "Exit full screen mode")),
+		Quit:             key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "Quit the application")),
+		Next:             key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "Select next file")),
+		Previous:         key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "Select previous file")),
+		ClearStatus:      key.NewBinding(key.WithKeys("alt+c"), key.WithHelp("alt+c", "Clear the status bar")),
+		ToggleFullscreen: key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "Enter full screen mode")),
 	}
 }
 
 func (m ApplicationKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{m.Quit, m.ClearStatus, m.FullScreenOn, m.FullScreenOff}
+	return []key.Binding{m.Quit, m.ClearStatus, m.ToggleFullscreen}
 }
 
 func (m ApplicationKeyMap) FullHelp() [][]key.Binding {

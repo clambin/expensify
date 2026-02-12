@@ -88,11 +88,8 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, func() tea.Msg { return setActivePaneMsg{paneID: (a.activePane - 1 + 3) % 3} }
 		case key.Matches(msg, a.keyMap.ClearStatus):
 			return a, func() tea.Msg { return statusMsg{} }
-		case key.Matches(msg, a.keyMap.FullScreenOn):
-			a.fullscreen = true
-			return a.sizePanes(), nil
-		case key.Matches(msg, a.keyMap.FullScreenOff):
-			a.fullscreen = false
+		case key.Matches(msg, a.keyMap.ToggleFullscreen):
+			a.fullscreen = !a.fullscreen
 			return a.sizePanes(), nil
 		default:
 			return a, a.panes[a.activePane].Update(msg)
@@ -108,10 +105,10 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a Application) View() string {
 	var top string
-	if a.fullscreen {
+	switch a.fullscreen {
+	case true:
 		top = a.panes[a.activePane].View()
-
-	} else {
+	case false:
 		top = a.viewPaned()
 	}
 
@@ -131,15 +128,15 @@ func (a Application) FullHelp() [][]key.Binding {
 }
 
 func (a Application) sizePanes() Application {
-	borderWidth := frameStyles.Border.GetHorizontalBorderSize()
-	borderHeight := frameStyles.Border.GetVerticalBorderSize()
-
 	workingHeight := a.height - 2 // one for status line, one for help
 
 	if a.fullscreen {
 		a.panes[a.activePane].SetSize(a.width, workingHeight)
 		return a
 	}
+
+	borderWidth := frameStyles.Border.GetHorizontalBorderSize()
+	borderHeight := frameStyles.Border.GetVerticalBorderSize()
 
 	headerWidth := a.width / 2
 	headerHeight := workingHeight / 3

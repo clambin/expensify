@@ -1,5 +1,5 @@
-codeberg.org/clambin/bubbles v0.7.0 h1:lGN1Z30LAxq+q52jZPdI7LAxpwbEE1ElWUBf9e7UGtI=
-codeberg.org/clambin/bubbles v0.7.0/go.mod h1:9dgObbNBPF49jTUpENf1OvHTVJqWQ+q9nxsQhkVKeMs=
+codeberg.org/clambin/bubbles v0.8.0 h1:vJp2dsGTvo9ZkI4IFr1XogC1IL0xUiyBts/KF9thec0=
+codeberg.org/clambin/bubbles v0.8.0/go.mod h1:xTXlsF9JkUVkp380PKdluHIy81HDKP1Ud+dnJjqoQiE=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
 dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
