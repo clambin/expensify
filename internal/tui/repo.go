@@ -9,24 +9,18 @@ import (
 	"github.com/clambin/expensify/internal/statements"
 )
 
-var _ pane = repoView{}
-
 type repoView struct {
-	*table.Table
+	tea.Model
 	repo.Repo
 	RepoKeyMap
 	tagRules []statements.TagRule
 }
 
-func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap) tea.Model {
+func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap) repoView {
 	return repoView{
-		Table: table.NewTable(
-			"files",
-			[]table.Column{{Name: "Name"}},
-			nil,
-			tableStyles,
-			table.DefaultKeyMap(),
-		),
+		Model: table.New().
+			Columns([]table.Column{{Name: "Name"}}).
+			Styles(tableStyles),
 		Repo:       r,
 		tagRules:   tagRules,
 		RepoKeyMap: keyMap,
@@ -35,7 +29,7 @@ func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap) 
 
 func (rv repoView) Init() tea.Cmd {
 	return tea.Batch(
-		rv.Table.Init(),
+		rv.Model.Init(),
 		func() tea.Msg { return statusbar.Msg{Text: "Loading files ...", Spinner: true} },
 		loadRepoFilesCmd(rv.Repo),
 	)
@@ -48,14 +42,14 @@ func (rv repoView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for i, f := range msg.files {
 			rows[i] = table.Row{f}
 		}
-		rv.SetRows(rows)
+		rv.Model = rv.Model.(table.Table).Rows(rows)
 		return rv, func() tea.Msg { return statusbar.Msg{} }
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, rv.Open):
 			return rv, tea.Batch(
 				func() tea.Msg { return statusbar.Msg{Text: "Loading statements file ...", Spinner: true} },
-				openStatementsFileCmd(rv.Repo, rv.tagRules, rv.SelectedRow[0].(string)),
+				openStatementsFileCmd(rv.Repo, rv.tagRules, rv.Model.(table.Table).SelectedRow()[0].(string)),
 				func() tea.Msg { return setActivePaneMsg{summaryPane} },
 			)
 		case key.Matches(msg, rv.Reload):
@@ -64,15 +58,18 @@ func (rv repoView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				loadRepoFilesCmd(rv.Repo),
 			)
 		default:
-			return rv, rv.Table.Update(msg)
+			var cmd tea.Cmd
+			rv.Model, cmd = rv.Model.Update(msg)
+			return rv, cmd
 		}
-	default:
-		return rv, rv.Table.Update(msg)
 	}
+	var cmd tea.Cmd
+	rv.Model, cmd = rv.Model.Update(msg)
+	return rv, cmd
 }
 
 func (rv repoView) SetSize(width, height int) tea.Model {
-	rv.Table.SetSize(width, height)
+	rv.Model = rv.Model.(table.Table).Size(width, height)
 	return rv
 }
 

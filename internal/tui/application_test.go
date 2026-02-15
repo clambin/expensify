@@ -57,10 +57,10 @@ func TestApplication(t *testing.T) {
 		return bytes.Contains(bts, []byte("Details"))
 	})
 
-	golden.RequireEqual(t, app.View())
-
 	tm.Send(tea.KeyMsg{Type: tea.KeyCtrlC})
 	tm.WaitFinished(t)
+
+	golden.RequireEqual(t, tm.FinalModel(t).View())
 }
 
 func TestApplication_Update_Navigation(t *testing.T) {

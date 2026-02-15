@@ -12,12 +12,6 @@ import (
 	"github.com/clambin/expensify/internal/statements"
 )
 
-type pane interface {
-	tea.Model
-	help.KeyMap
-	SetSize(int, int) tea.Model
-}
-
 // paneID identifies the different panes in the application
 type paneID int
 
@@ -33,14 +27,16 @@ var (
 )
 
 type Application struct {
-	help       help.Model
-	panes      map[paneID]tea.Model
-	statusLine tea.Model
-	keyMap     ApplicationKeyMap
-	activePane paneID
-	width      int
-	height     int
-	fullscreen bool
+	help           help.Model
+	repoPane       tea.Model
+	summaryPane    tea.Model
+	statementsPane tea.Model
+	statusLine     tea.Model
+	keyMap         ApplicationKeyMap
+	activePane     paneID
+	width          int
+	height         int
+	fullscreen     bool
 }
 
 func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model {
@@ -48,25 +44,23 @@ func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model
 	h.Styles = helpStyles
 
 	return Application{
-		keyMap: keyMap.ApplicationKeyMap,
-		help:   h,
-		panes: map[paneID]tea.Model{
-			repoPane:       newRepoView(repo, tagRules, keyMap.RepoKeyMap),
-			summaryPane:    newSummaryView(keyMap.SummaryKeyMap),
-			statementsPane: newStatementsView(keyMap.StatementsListKeyMap, keyMap.StatementsDetailsKeyMap),
-		},
-		statusLine: statusbar.New(statusStyles, spinner.WithSpinner(spinner.Dot)),
-		activePane: repoPane,
+		keyMap:         keyMap.ApplicationKeyMap,
+		help:           h,
+		repoPane:       newRepoView(repo, tagRules, keyMap.RepoKeyMap),
+		summaryPane:    newSummaryView(keyMap.SummaryKeyMap),
+		statementsPane: newStatementsView(keyMap.StatementsListKeyMap, keyMap.StatementsDetailsKeyMap),
+		statusLine:     statusbar.New(statusStyles, spinner.WithSpinner(spinner.Dot)),
+		activePane:     repoPane,
 	}
 }
 
 func (a Application) Init() tea.Cmd {
-	initCmds := make([]tea.Cmd, 0, len(a.panes))
-	for _, c := range a.panes {
-		initCmds = append(initCmds, c.Init())
-	}
-	initCmds = append(initCmds, a.statusLine.Init())
-	return tea.Batch(initCmds...)
+	return tea.Batch(
+		a.repoPane.Init(),
+		a.summaryPane.Init(),
+		a.statementsPane.Init(),
+		a.statusLine.Init(),
+	)
 }
 
 func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -96,16 +90,21 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a.sizePanes(), nil
 		default:
 			var cmd tea.Cmd
-			a.panes[a.activePane], cmd = a.panes[a.activePane].Update(msg)
+			switch a.activePane {
+			case repoPane:
+				a.repoPane, cmd = a.repoPane.Update(msg)
+			case summaryPane:
+				a.summaryPane, cmd = a.summaryPane.Update(msg)
+			case statementsPane:
+				a.statementsPane, cmd = a.statementsPane.Update(msg)
+			}
 			return a, cmd
 		}
 	default:
-		cmds := make([]tea.Cmd, 0, len(a.panes))
-		for pid := range a.panes {
-			var cmd tea.Cmd
-			a.panes[pid], cmd = a.panes[pid].Update(msg)
-			cmds = append(cmds, cmd)
-		}
+		cmds := make([]tea.Cmd, 3)
+		a.repoPane, cmds[0] = a.repoPane.Update(msg)
+		a.summaryPane, cmds[1] = a.summaryPane.Update(msg)
+		a.statementsPane, cmds[2] = a.statementsPane.Update(msg)
 		return a, tea.Batch(cmds...)
 	}
 }
@@ -113,10 +112,17 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (a Application) View() string {
 	var top string
 	switch a.fullscreen {
-	case true:
-		top = a.panes[a.activePane].View()
 	case false:
 		top = a.viewPaned()
+	case true:
+		switch a.activePane {
+		case repoPane:
+			top = a.repoPane.View()
+		case summaryPane:
+			top = a.summaryPane.View()
+		case statementsPane:
+			top = a.statementsPane.View()
+		}
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Top,
@@ -127,7 +133,16 @@ func (a Application) View() string {
 }
 
 func (a Application) ShortHelp() []key.Binding {
-	return append(a.keyMap.ShortHelp(), a.panes[a.activePane].(help.KeyMap).ShortHelp()...)
+	var b []key.Binding
+	switch a.activePane {
+	case repoPane:
+		b = a.repoPane.(repoView).ShortHelp()
+	case summaryPane:
+		b = a.summaryPane.(summaryView).ShortHelp()
+	case statementsPane:
+		b = a.statementsPane.(statementsView).ShortHelp()
+	}
+	return append(a.keyMap.ShortHelp(), b...)
 }
 
 func (a Application) FullHelp() [][]key.Binding {
@@ -138,7 +153,14 @@ func (a Application) sizePanes() Application {
 	workingHeight := a.height - 2 // one for status line, one for help
 
 	if a.fullscreen {
-		a.panes[a.activePane].(pane).SetSize(a.width, workingHeight)
+		switch a.activePane {
+		case repoPane:
+			a.repoPane = a.repoPane.(repoView).SetSize(a.width, workingHeight)
+		case summaryPane:
+			a.summaryPane = a.summaryPane.(summaryView).SetSize(a.width, workingHeight)
+		case statementsPane:
+			a.statementsPane = a.statementsPane.(statementsView).SetSize(a.width, workingHeight)
+		}
 		return a
 	}
 
@@ -148,27 +170,26 @@ func (a Application) sizePanes() Application {
 	headerWidth := a.width / 2
 	headerHeight := workingHeight / 3
 
-	a.panes[repoPane] = a.panes[repoPane].(pane).SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
-	a.panes[summaryPane] = a.panes[summaryPane].(pane).SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
-	a.panes[statementsPane] = a.panes[statementsPane].(pane).SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
-	a.statusLine.(statusbar.Model).Width(a.width).View()
+	a.repoPane = a.repoPane.(repoView).SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
+	a.summaryPane = a.summaryPane.(summaryView).SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
+	a.statementsPane = a.statementsPane.(statementsView).SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
 	a.help.Width = a.width
 	return a
 }
 
 func (a Application) viewPaned() string {
-	s := map[paneID]frame.Styles{
+	styles := map[paneID]frame.Style{
 		repoPane:       frameStyles,
 		summaryPane:    frameStyles,
 		statementsPane: frameStyles,
 	}
-	s[a.activePane] = selectedFrameStyles
+	styles[a.activePane] = selectedFrameStyles
 
 	return lipgloss.JoinVertical(lipgloss.Top,
 		lipgloss.JoinHorizontal(lipgloss.Left,
-			frame.Draw("files", lipgloss.Center, a.panes[repoPane].View(), s[repoPane]),
-			frame.Draw("summary", lipgloss.Center, a.panes[summaryPane].View(), s[summaryPane]),
+			frame.Draw("files", lipgloss.Center, a.repoPane.View(), styles[repoPane]),
+			frame.Draw("summary", lipgloss.Center, a.summaryPane.View(), styles[summaryPane]),
 		),
-		frame.Draw("statements", lipgloss.Center, a.panes[statementsPane].View(), s[statementsPane]),
+		frame.Draw("statements", lipgloss.Center, a.statementsPane.View(), styles[statementsPane]),
 	)
 }
