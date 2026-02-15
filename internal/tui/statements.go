@@ -36,10 +36,17 @@ func init() {
 		columns := make([]table.Column, 0, len(schema.Columns)+1)
 		for _, col := range schema.Columns {
 			if col.Label != "" {
-				columns = append(columns, table.Column{Name: col.Label, Width: formatting[col.Label].Width, RowStyle: formatting[col.Label].RowStyle})
+				columns = append(columns, table.Column{
+					Name:      col.Label,
+					Width:     formatting[col.Label].Width,
+					CellStyle: formatting[col.Label].RowStyle,
+				})
 			}
 		}
-		columns = append(columns, table.Column{Name: "Tag", Width: formatting["Tag"].Width, RowStyle: formatting["Tag"].RowStyle})
+		columns = append(columns, table.Column{
+			Name:      "Tag",
+			Width:     formatting["Tag"].Width,
+			CellStyle: formatting["Tag"].RowStyle})
 		statementColumns[name] = columns
 	}
 }
@@ -68,25 +75,15 @@ func newStatementsView(listKeyMap StatementsListKeyMap, detailsKeyMap Statements
 	return statementsView{
 		views: map[statementsMode]tea.Model{
 			statementsList: &statementsListView{
-				Table: table.NewTable(
-					"statements",
-					statementColumns["bnp-debit"],
-					nil,
-					tableStyles,
-					table.DefaultKeyMap(),
-				),
+				Model: table.New().
+					Columns(statementColumns["bnp-debit"]).
+					Styles(tableStyles),
 				StatementsListKeyMap: listKeyMap,
 			},
 			statementsDetails: &statementsDetailsView{
-				Table: table.NewTable(
-					"statement details",
-					table.Columns{
-						{Name: "Field", Width: 15},
-						{Name: "Value"},
-					},
-					nil,
-					tableStyles, table.DefaultKeyMap(),
-				),
+				Model: table.New().
+					Columns(table.Columns{{Name: "Field", Width: 15}, {Name: "Value"}}).
+					Styles(tableStyles),
 				StatementsDetailsKeyMap: detailsKeyMap,
 			},
 		},
@@ -142,7 +139,7 @@ func (sv statementsView) FullHelp() [][]key.Binding {
 
 // statementsListView displays a list of statements
 type statementsListView struct {
-	*table.Table
+	tea.Model
 	StatementsListKeyMap
 	schema tcsv.Schema
 }
@@ -151,23 +148,29 @@ func (s statementsListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case populateStatementsMsg:
 		s.schema = msg.file.Schema
-		s.SetColumns(statementColumns[msg.file.SchemaName])
+		s.Model = s.Model.(table.Table).Columns(statementColumns[msg.file.SchemaName])
 		return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }
 	case showStatementsMsg:
-		s.SetRows(buildStatementRows(msg.statements))
+		s.Model = s.Model.(table.Table).Rows(buildStatementRows(msg.statements))
 		return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, s.Details):
 			return s, tea.Batch(
-				func() tea.Msg { return openStatementDetailsMsg{taggedRow: s.SelectedRow, schema: s.schema} },
+				func() tea.Msg {
+					return openStatementDetailsMsg{taggedRow: s.Model.(table.Table).SelectedRow(), schema: s.schema}
+				},
 				func() tea.Msg { return setStatementsModeMsg{statementsDetails} },
 			)
 		default:
-			return s, s.Table.Update(msg)
+			var cmd tea.Cmd
+			s.Model, cmd = s.Model.Update(msg)
+			return s, cmd
 		}
 	default:
-		return s, s.Table.Update(msg)
+		var cmd tea.Cmd
+		s.Model, cmd = s.Model.Update(msg)
+		return s, cmd
 	}
 }
 
@@ -180,7 +183,7 @@ func (s statementsListView) FullHelp() [][]key.Binding {
 }
 
 func (s statementsListView) SetSize(width, height int) tea.Model {
-	s.Table.SetSize(width, height)
+	s.Model = s.Model.(table.Table).Size(width, height)
 	return s
 }
 
@@ -207,21 +210,25 @@ func buildStatementRows(statements []statements.TaggedRow) []table.Row {
 
 // statementsDetailsView displays the details of a single statement
 type statementsDetailsView struct {
-	*table.Table
+	tea.Model
 	StatementsDetailsKeyMap
 }
 
 func (s statementsDetailsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case openStatementDetailsMsg:
-		s.SetRows(buildStatementDetailRows(msg.taggedRow, msg.schema))
+		s.Model = s.Model.(table.Table).Rows(buildStatementDetailRows(msg.taggedRow, msg.schema))
+		return s, nil
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, s.Close):
 			return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }
+
 		}
 	}
-	return s, s.Table.Update(msg)
+	var cmd tea.Cmd
+	s.Model, cmd = s.Model.Update(msg)
+	return s, cmd
 }
 
 func (s statementsDetailsView) ShortHelp() []key.Binding {
@@ -233,7 +240,7 @@ func (s statementsDetailsView) FullHelp() [][]key.Binding {
 }
 
 func (s statementsDetailsView) SetSize(width, height int) tea.Model {
-	s.Table.SetSize(width, height)
+	s.Model = s.Model.(table.Table).Size(width, height)
 	return s
 }
 

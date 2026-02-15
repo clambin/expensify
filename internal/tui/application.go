@@ -157,7 +157,7 @@ func (a Application) sizePanes() Application {
 }
 
 func (a Application) viewPaned() string {
-	s := map[paneID]frame.Styles{
+	s := map[paneID]frame.Style{
 		repoPane:       frameStyles,
 		summaryPane:    frameStyles,
 		statementsPane: frameStyles,

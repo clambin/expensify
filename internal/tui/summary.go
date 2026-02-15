@@ -16,7 +16,7 @@ import (
 var _ pane = summaryView{}
 
 type summaryView struct {
-	*table.Table
+	tea.Model
 	SummaryKeyMap
 	taggedStatements []statements.TaggedRow
 	schema           tcsv.Schema
@@ -24,16 +24,12 @@ type summaryView struct {
 
 func newSummaryView(keyMap SummaryKeyMap) tea.Model {
 	return summaryView{
-		Table: table.NewTable(
-			"summary",
-			table.Columns{
+		Model: table.New().
+			Columns(table.Columns{
 				{Name: "Tag"},
-				{Name: "Amount", Width: 10, RowStyle: table.CellStyle{Style: lipgloss.NewStyle().Align(lipgloss.Right)}},
-			},
-			nil,
-			tableStyles,
-			table.DefaultKeyMap(),
-		),
+				{Name: "Amount", Width: 10, CellStyle: table.CellStyle{Style: lipgloss.NewStyle().Align(lipgloss.Right)}},
+			}).
+			Styles(tableStyles),
 		SummaryKeyMap: keyMap,
 	}
 }
@@ -47,27 +43,31 @@ func (sv summaryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case populateStatementsMsg:
 		sv.taggedStatements = msg.taggedStatements
 		sv.schema = msg.file.Schema
-		sv.SetRows(buildRows(sv))
+		sv.Model = sv.Model.(table.Table).Rows(buildRows(sv))
 		return sv, func() tea.Msg { return statusbar.Msg{} }
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, sv.Open):
 			return sv, tea.Batch(
 				func() tea.Msg {
-					return showStatementsMsg{filterStatements(sv.SelectedRow[0].(string), sv.taggedStatements)}
+					return showStatementsMsg{filterStatements(sv.Model.(table.Table).SelectedRow()[0].(string), sv.taggedStatements)}
 				},
 				func() tea.Msg { return setActivePaneMsg{statementsPane} },
 			)
 		default:
-			return sv, sv.Table.Update(msg)
+			var cmd tea.Cmd
+			sv.Model, cmd = sv.Model.Update(msg)
+			return sv, cmd
 		}
 	default:
-		return sv, sv.Table.Update(msg)
+		var cmd tea.Cmd
+		sv.Model, cmd = sv.Model.Update(msg)
+		return sv, cmd
 	}
 }
 
 func (sv summaryView) SetSize(width, height int) tea.Model {
-	sv.Table.SetSize(width, height)
+	sv.Model = sv.Model.(table.Table).Size(width, height)
 	return sv
 }
 

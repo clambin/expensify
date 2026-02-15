@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"codeberg.org/clambin/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/stretchr/testify/assert"
@@ -33,7 +34,7 @@ func TestRepoView_Init(t *testing.T) {
 
 	// scroll down and check each file entry
 	for i := range files {
-		require.Equal(t, files[i], rv.(repoView).SelectedRow[0])
+		require.Equal(t, files[i], rv.(repoView).Model.(table.Table).SelectedRow()[0])
 		rv, _ = rv.Update(tea.KeyMsg{Type: tea.KeyDown})
 	}
 }
@@ -47,7 +48,7 @@ func TestRepoView_loadRepoFilesCmd(t *testing.T) {
 	rv, _ = rv.Update(loadRepoFilesCmd(r)())
 
 	// the first file should be selected
-	assert.Equal(t, "file1.csv", rv.(repoView).SelectedRow[0])
+	assert.Equal(t, "file1.csv", rv.(repoView).Model.(table.Table).SelectedRow()[0])
 
 	// open the selected file. this should fire off messages to load the file and switch to the summary view
 	_, cmd := rv.Update(tea.KeyMsg{Type: tea.KeyEnter})

@@ -21,12 +21,12 @@ var (
 		ShortSeparator: lipgloss.NewStyle().Foreground(colors.Orange3),
 	}
 
-	selectedFrameStyles = frame.Styles{
+	selectedFrameStyles = frame.Style{
 		Title:  lipgloss.NewStyle().Foreground(colors.Grey74).Bold(true),
 		Border: lipgloss.NewStyle().Border(lipgloss.DoubleBorder()),
 	}
 
-	frameStyles = frame.Styles{
+	frameStyles = frame.Style{
 		Title:  lipgloss.NewStyle().Foreground(colors.Grey74).Bold(false),
 		Border: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()),
 	}
