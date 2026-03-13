@@ -1,12 +1,12 @@
 package tui
 
 import (
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/frame"
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"
@@ -109,8 +109,8 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (a Application) View() string {
-	var top string
+func (a Application) View() tea.View {
+	var top tea.View
 	switch a.fullscreen {
 	case false:
 		top = a.viewPaned()
@@ -124,12 +124,13 @@ func (a Application) View() string {
 			top = a.statementsPane.View()
 		}
 	}
-
-	return lipgloss.JoinVertical(lipgloss.Top,
-		top,
-		a.statusLine.(statusbar.Model).Width(a.width).View(),
+	v := tea.NewView(lipgloss.JoinVertical(lipgloss.Top,
+		top.Content,
+		a.statusLine.(statusbar.Model).Width(a.width).View().Content,
 		a.help.View(a),
-	)
+	))
+	v.AltScreen = true
+	return v
 }
 
 func (a Application) ShortHelp() []key.Binding {
@@ -173,11 +174,11 @@ func (a Application) sizePanes() Application {
 	a.repoPane = a.repoPane.(repoView).SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
 	a.summaryPane = a.summaryPane.(summaryView).SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
 	a.statementsPane = a.statementsPane.(statementsView).SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
-	a.help.Width = a.width
+	a.help.SetWidth(a.width)
 	return a
 }
 
-func (a Application) viewPaned() string {
+func (a Application) viewPaned() tea.View {
 	styles := map[paneID]frame.Style{
 		repoPane:       frameStyles,
 		summaryPane:    frameStyles,
@@ -185,11 +186,11 @@ func (a Application) viewPaned() string {
 	}
 	styles[a.activePane] = selectedFrameStyles
 
-	return lipgloss.JoinVertical(lipgloss.Top,
+	return tea.NewView(lipgloss.JoinVertical(lipgloss.Top,
 		lipgloss.JoinHorizontal(lipgloss.Left,
-			frame.Draw("files", lipgloss.Center, a.repoPane.View(), styles[repoPane]),
-			frame.Draw("summary", lipgloss.Center, a.summaryPane.View(), styles[summaryPane]),
+			frame.DrawView("files", lipgloss.Center, styles[repoPane], a.repoPane.View()).Content,
+			frame.DrawView("summary", lipgloss.Center, styles[summaryPane], a.summaryPane.View()).Content,
 		),
-		frame.Draw("statements", lipgloss.Center, a.statementsPane.View(), styles[statementsPane]),
-	)
+		frame.DrawView("statements", lipgloss.Center, styles[statementsPane], a.statementsPane.View()).Content,
+	))
 }

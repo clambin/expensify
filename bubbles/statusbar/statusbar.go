@@ -1,9 +1,9 @@
 package statusbar
 
 import (
-	"github.com/charmbracelet/bubbles/spinner"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 type Msg struct {
@@ -46,12 +46,12 @@ func (s Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (s Model) View() string {
+func (s Model) View() tea.View {
 	msg := s.msg.Text
 	if s.msg.Spinner {
 		msg += " " + s.spinner.View()
 	}
-	return s.style[s.msg.Warn].Width(s.width).MaxHeight(1).Render(msg)
+	return tea.NewView(s.style[s.msg.Warn].Width(s.width).MaxHeight(1).Render(msg))
 }
 
 func (s Model) Width(width int) Model {

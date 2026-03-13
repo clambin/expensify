@@ -3,8 +3,8 @@ package tui
 import (
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"codeberg.org/clambin/bubbles/table"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/clambin/expensify/internal/statements"
 	"github.com/clambin/expensify/tcsv"
 	"github.com/stretchr/testify/assert"

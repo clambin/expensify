@@ -1,9 +1,9 @@
 package tui
 
 import (
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"

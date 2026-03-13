@@ -4,10 +4,10 @@ import (
 	"maps"
 	"slices"
 
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/clambin/expensify/internal/statements"
 	"github.com/clambin/expensify/tcsv"
@@ -43,7 +43,7 @@ func (sv summaryView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		sv.schema = msg.file.Schema
 		sv.Model = sv.Model.(table.Table).Rows(buildRows(sv))
 		return sv, func() tea.Msg { return statusbar.Msg{} }
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, sv.Open):
 			return sv, tea.Batch(

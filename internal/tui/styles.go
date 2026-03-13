@@ -1,11 +1,11 @@
 package tui
 
 import (
+	"charm.land/bubbles/v2/help"
+	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/colors"
 	"codeberg.org/clambin/bubbles/frame"
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/lipgloss"
 )
 
 var (

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/clambin/expensify/internal/configuration"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/tui"
@@ -19,7 +19,8 @@ var (
 				return err
 			}
 			model := tui.New(repo, cfg.Rules, tui.DefaultKeyMap())
-			_, err = tea.NewProgram(model, tea.WithAltScreen(), tea.WithoutCatchPanics()).Run()
+			p := tea.NewProgram(model) //tea.WithoutCatchPanics(),
+			_, err = p.Run()
 			return err
 		},
 	}

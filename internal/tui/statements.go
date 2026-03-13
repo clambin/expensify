@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/clambin/expensify/internal/statements"
 	"github.com/clambin/expensify/tcsv"
@@ -95,7 +95,7 @@ func (sv statementsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case setStatementsModeMsg:
 		sv.mode = msg.mode
 		return sv, nil
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		var cmd tea.Cmd
 		switch sv.mode {
 		case statementsList:
@@ -112,14 +112,14 @@ func (sv statementsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (sv statementsView) View() string {
+func (sv statementsView) View() tea.View {
 	switch sv.mode {
 	case statementsList:
 		return sv.statementsList.View()
 	case statementsDetails:
 		return sv.statementsDetails.View()
 	default:
-		return ""
+		return tea.NewView("")
 	}
 }
 
@@ -160,7 +160,7 @@ func (s statementsListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case showStatementsMsg:
 		s.Model = s.Model.(table.Table).Rows(buildStatementRows(msg.statements))
 		return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, s.Details):
 			return s, tea.Batch(
