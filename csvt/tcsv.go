@@ -1,5 +1,5 @@
-// Package tcsv provides a typed CVS parser
-package tcsv
+// Package csvt provides a typed CSV parser
+package csvt
 
 import (
 	"bytes"

@@ -28,11 +28,11 @@ var (
 
 type Application struct {
 	help           help.Model
-	repoPane       tea.Model
-	summaryPane    tea.Model
-	statementsPane tea.Model
-	statusLine     tea.Model
 	keyMap         ApplicationKeyMap
+	repoPane       repoView
+	summaryPane    summaryView
+	statusLine     statusbar.Model
+	statementsPane statementsView
 	activePane     paneID
 	width          int
 	height         int
@@ -110,7 +110,7 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a Application) View() tea.View {
-	var top tea.View
+	var top string
 	switch a.fullscreen {
 	case false:
 		top = a.viewPaned()
@@ -125,8 +125,8 @@ func (a Application) View() tea.View {
 		}
 	}
 	v := tea.NewView(lipgloss.JoinVertical(lipgloss.Top,
-		top.Content,
-		a.statusLine.(statusbar.Model).Width(a.width).View().Content,
+		top,
+		a.statusLine.Width(a.width).View(),
 		a.help.View(a),
 	))
 	v.AltScreen = true
@@ -137,11 +137,11 @@ func (a Application) ShortHelp() []key.Binding {
 	var b []key.Binding
 	switch a.activePane {
 	case repoPane:
-		b = a.repoPane.(repoView).ShortHelp()
+		b = a.repoPane.ShortHelp()
 	case summaryPane:
-		b = a.summaryPane.(summaryView).ShortHelp()
+		b = a.summaryPane.ShortHelp()
 	case statementsPane:
-		b = a.statementsPane.(statementsView).ShortHelp()
+		b = a.statementsPane.ShortHelp()
 	}
 	return append(a.keyMap.ShortHelp(), b...)
 }
@@ -156,11 +156,11 @@ func (a Application) sizePanes() Application {
 	if a.fullscreen {
 		switch a.activePane {
 		case repoPane:
-			a.repoPane = a.repoPane.(repoView).SetSize(a.width, workingHeight)
+			a.repoPane = a.repoPane.SetSize(a.width, workingHeight)
 		case summaryPane:
-			a.summaryPane = a.summaryPane.(summaryView).SetSize(a.width, workingHeight)
+			a.summaryPane = a.summaryPane.SetSize(a.width, workingHeight)
 		case statementsPane:
-			a.statementsPane = a.statementsPane.(statementsView).SetSize(a.width, workingHeight)
+			a.statementsPane = a.statementsPane.SetSize(a.width, workingHeight)
 		}
 		return a
 	}
@@ -171,14 +171,14 @@ func (a Application) sizePanes() Application {
 	headerWidth := a.width / 2
 	headerHeight := workingHeight / 3
 
-	a.repoPane = a.repoPane.(repoView).SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
-	a.summaryPane = a.summaryPane.(summaryView).SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
-	a.statementsPane = a.statementsPane.(statementsView).SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
+	a.repoPane = a.repoPane.SetSize(headerWidth-borderWidth, headerHeight-borderHeight)
+	a.summaryPane = a.summaryPane.SetSize(a.width-headerWidth-borderWidth, headerHeight-borderHeight)
+	a.statementsPane = a.statementsPane.SetSize(a.width-borderWidth, workingHeight-headerHeight-borderHeight)
 	a.help.SetWidth(a.width)
 	return a
 }
 
-func (a Application) viewPaned() tea.View {
+func (a Application) viewPaned() string {
 	styles := map[paneID]frame.Style{
 		repoPane:       frameStyles,
 		summaryPane:    frameStyles,
@@ -186,11 +186,11 @@ func (a Application) viewPaned() tea.View {
 	}
 	styles[a.activePane] = selectedFrameStyles
 
-	return tea.NewView(lipgloss.JoinVertical(lipgloss.Top,
+	return lipgloss.JoinVertical(lipgloss.Top,
 		lipgloss.JoinHorizontal(lipgloss.Left,
-			frame.DrawView("files", lipgloss.Center, styles[repoPane], a.repoPane.View()).Content,
-			frame.DrawView("summary", lipgloss.Center, styles[summaryPane], a.summaryPane.View()).Content,
+			frame.Render("files", lipgloss.Center, styles[repoPane], a.repoPane.View()),
+			frame.Render("summary", lipgloss.Center, styles[summaryPane], a.summaryPane.View()),
 		),
-		frame.DrawView("statements", lipgloss.Center, styles[statementsPane], a.statementsPane.View()).Content,
-	))
+		frame.Render("statements", lipgloss.Center, styles[statementsPane], a.statementsPane.View()),
+	)
 }

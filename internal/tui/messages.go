@@ -2,8 +2,8 @@ package tui
 
 import (
 	"codeberg.org/clambin/bubbles/table"
+	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
-	"github.com/clambin/expensify/tcsv"
 )
 
 // setActivePaneMsg sets the active pane in the UI
@@ -19,7 +19,7 @@ type populateRepoFilesMsg struct {
 // populateStatementsMsg contains the loaded statements and is used to populate the summary and statements views
 type populateStatementsMsg struct {
 	taggedStatements []statements.TaggedRow
-	file             tcsv.File
+	file             csvt.File
 }
 
 // showStatementsMsg shows the statements in the statements view
@@ -36,5 +36,5 @@ type setStatementsModeMsg struct {
 // openStatementDetailsMsg opens the details view for the given row
 type openStatementDetailsMsg struct {
 	taggedRow table.Row
-	schema    tcsv.Schema
+	schema    csvt.Schema
 }

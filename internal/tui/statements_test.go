@@ -3,21 +3,20 @@ package tui
 import (
 	"testing"
 
-	tea "charm.land/bubbletea/v2"
 	"codeberg.org/clambin/bubbles/table"
+	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
-	"github.com/clambin/expensify/tcsv"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSummarizeStatements(t *testing.T) {
 	rows := []statements.TaggedRow{
-		{Tag: "Food", Row: tcsv.Row{nil, nil, 10.0}},
-		{Tag: "Rent", Row: tcsv.Row{nil, nil, 100.0}},
-		{Tag: "Food", Row: tcsv.Row{nil, nil, 5.0}},
+		{Tag: "Food", Row: csvt.Row{nil, nil, 10.0}},
+		{Tag: "Rent", Row: csvt.Row{nil, nil, 100.0}},
+		{Tag: "Food", Row: csvt.Row{nil, nil, 5.0}},
 	}
-	schema := tcsv.Schema{
-		Columns: []tcsv.Column{
+	schema := csvt.Schema{
+		Columns: []csvt.Column{
 			{Label: "Date"},
 			{Label: "Other"},
 			{Label: "Amount"},
@@ -32,18 +31,18 @@ func TestSummarizeStatements(t *testing.T) {
 }
 
 func TestStatementsView_DetailsToggle(t *testing.T) {
-	var sv tea.Model = newStatementsView(defaultStatementsListKeyMap(), defaultStatementsDetailsKeyMap())
-	assert.Equal(t, statementsList, sv.(statementsView).mode)
+	sv := newStatementsView(defaultStatementsListKeyMap(), defaultStatementsDetailsKeyMap())
+	assert.Equal(t, statementsList, sv.mode)
 
 	// Open details
 	msg := openStatementDetailsMsg{
 		taggedRow: table.Row{"2024-01-01", "10.0", "Food"},
-		schema:    tcsv.Schema{},
+		schema:    csvt.Schema{},
 	}
 	sv, _ = sv.Update(msg)
-	assert.Equal(t, statementsList, sv.(statementsView).mode)
+	assert.Equal(t, statementsList, sv.mode)
 
 	// Close details
 	sv, _ = sv.Update(setStatementsModeMsg{statementsDetails})
-	assert.Equal(t, statementsDetails, sv.(statementsView).mode)
+	assert.Equal(t, statementsDetails, sv.mode)
 }

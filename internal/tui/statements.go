@@ -11,8 +11,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/table"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
-	"github.com/clambin/expensify/tcsv"
 )
 
 var statementColumns map[string][]table.Column
@@ -61,21 +61,21 @@ const (
 
 // statementsView combines the list of statements with a detailed view of the selected statement
 type statementsView struct {
-	statementsList    tea.Model
-	statementsDetails tea.Model
+	statementsDetails statementsDetailsView
+	statementsList    statementsListView
 	mode              statementsMode
 }
 
 func newStatementsView(listKeyMap StatementsListKeyMap, detailsKeyMap StatementsDetailsKeyMap) statementsView {
 	return statementsView{
 		statementsList: statementsListView{
-			Model: table.New().
+			Table: table.New().
 				Columns(statementColumns["bnp-debit"]).
 				Styles(tableStyles),
 			StatementsListKeyMap: listKeyMap,
 		},
 		statementsDetails: statementsDetailsView{
-			Model: table.New().
+			Table: table.New().
 				Columns(table.Columns{{Name: "Field", Width: 15}, {Name: "Value"}}).
 				Styles(tableStyles),
 			StatementsDetailsKeyMap: detailsKeyMap,
@@ -90,7 +90,7 @@ func (sv statementsView) Init() tea.Cmd {
 	)
 }
 
-func (sv statementsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (sv statementsView) Update(msg tea.Msg) (statementsView, tea.Cmd) {
 	switch msg := msg.(type) {
 	case setStatementsModeMsg:
 		sv.mode = msg.mode
@@ -112,29 +112,29 @@ func (sv statementsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (sv statementsView) View() tea.View {
+func (sv statementsView) View() string {
 	switch sv.mode {
 	case statementsList:
 		return sv.statementsList.View()
 	case statementsDetails:
 		return sv.statementsDetails.View()
 	default:
-		return tea.NewView("")
+		return ""
 	}
 }
 
-func (sv statementsView) SetSize(width, height int) tea.Model {
-	sv.statementsList = sv.statementsList.(statementsListView).SetSize(width, height)
-	sv.statementsDetails = sv.statementsDetails.(statementsDetailsView).SetSize(width, height)
+func (sv statementsView) SetSize(width, height int) statementsView {
+	sv.statementsList = sv.statementsList.SetSize(width, height)
+	sv.statementsDetails = sv.statementsDetails.SetSize(width, height)
 	return sv
 }
 
 func (sv statementsView) ShortHelp() []key.Binding {
 	switch sv.mode {
 	case statementsList:
-		return sv.statementsList.(statementsListView).ShortHelp()
+		return sv.statementsList.ShortHelp()
 	case statementsDetails:
-		return sv.statementsDetails.(statementsDetailsView).ShortHelp()
+		return sv.statementsDetails.ShortHelp()
 	default:
 		return nil
 	}
@@ -146,37 +146,37 @@ func (sv statementsView) FullHelp() [][]key.Binding {
 
 // statementsListView displays a list of statements
 type statementsListView struct {
-	tea.Model
 	StatementsListKeyMap
-	schema tcsv.Schema
+	schema csvt.Schema
+	table.Table
 }
 
-func (s statementsListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (s statementsListView) Update(msg tea.Msg) (statementsListView, tea.Cmd) {
 	switch msg := msg.(type) {
 	case populateStatementsMsg:
 		s.schema = msg.file.Schema
-		s.Model = s.Model.(table.Table).Columns(statementColumns[msg.file.SchemaName])
+		s.Table = s.Columns(statementColumns[msg.file.SchemaName])
 		return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }
 	case showStatementsMsg:
-		s.Model = s.Model.(table.Table).Rows(buildStatementRows(msg.statements))
+		s.Table = s.Rows(buildStatementRows(msg.statements))
 		return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }
 	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, s.Details):
 			return s, tea.Batch(
 				func() tea.Msg {
-					return openStatementDetailsMsg{taggedRow: s.Model.(table.Table).SelectedRow(), schema: s.schema}
+					return openStatementDetailsMsg{taggedRow: s.SelectedRow(), schema: s.schema}
 				},
 				func() tea.Msg { return setStatementsModeMsg{statementsDetails} },
 			)
 		default:
 			var cmd tea.Cmd
-			s.Model, cmd = s.Model.Update(msg)
+			s.Table, cmd = s.Table.Update(msg)
 			return s, cmd
 		}
 	default:
 		var cmd tea.Cmd
-		s.Model, cmd = s.Model.Update(msg)
+		s.Table, cmd = s.Table.Update(msg)
 		return s, cmd
 	}
 }
@@ -189,8 +189,8 @@ func (s statementsListView) FullHelp() [][]key.Binding {
 	return [][]key.Binding{s.ShortHelp()}
 }
 
-func (s statementsListView) SetSize(width, height int) tea.Model {
-	s.Model = s.Model.(table.Table).Size(width, height)
+func (s statementsListView) SetSize(width, height int) statementsListView {
+	s.Table = s.Size(width, height)
 	return s
 }
 
@@ -217,14 +217,14 @@ func buildStatementRows(statements []statements.TaggedRow) []table.Row {
 
 // statementsDetailsView displays the details of a single statement
 type statementsDetailsView struct {
-	tea.Model
 	StatementsDetailsKeyMap
+	table.Table
 }
 
-func (s statementsDetailsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (s statementsDetailsView) Update(msg tea.Msg) (statementsDetailsView, tea.Cmd) {
 	switch msg := msg.(type) {
 	case openStatementDetailsMsg:
-		s.Model = s.Model.(table.Table).Rows(buildStatementDetailRows(msg.taggedRow, msg.schema))
+		s.Table = s.Rows(buildStatementDetailRows(msg.taggedRow, msg.schema))
 		return s, nil
 	case tea.KeyMsg:
 		switch {
@@ -234,7 +234,7 @@ func (s statementsDetailsView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	var cmd tea.Cmd
-	s.Model, cmd = s.Model.Update(msg)
+	s.Table, cmd = s.Table.Update(msg)
 	return s, cmd
 }
 
@@ -246,12 +246,12 @@ func (s statementsDetailsView) FullHelp() [][]key.Binding {
 	return [][]key.Binding{s.ShortHelp()}
 }
 
-func (s statementsDetailsView) SetSize(width, height int) tea.Model {
-	s.Model = s.Model.(table.Table).Size(width, height)
+func (s statementsDetailsView) SetSize(width, height int) statementsDetailsView {
+	s.Table = s.Size(width, height)
 	return s
 }
 
-func buildStatementDetailRows(taggedRow table.Row, schema tcsv.Schema) []table.Row {
+func buildStatementDetailRows(taggedRow table.Row, schema csvt.Schema) []table.Row {
 	rows := make([]table.Row, 0, len(taggedRow)+1)
 	var idx int
 	for _, col := range schema.Columns {

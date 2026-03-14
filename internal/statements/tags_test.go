@@ -4,15 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/rules"
-	"github.com/clambin/expensify/tcsv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTagRules_Evaluate(t *testing.T) {
 	schema := Schemas["bnp-visa"]
-	row := schema.ToMap(tcsv.Row{
+	row := schema.ToMap(csvt.Row{
 		time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 		1234.5,
 		"foo bar",
@@ -47,7 +47,7 @@ func TestTagRules_Evaluate(t *testing.T) {
 
 func TestTag(t *testing.T) {
 	date := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-	rows := []tcsv.Row{
+	rows := []csvt.Row{
 		{date, 1000.0, "Vendor A"},
 		{date, 1200.0, "Vendor A"},
 		{date, 2000.0, "Vendor B"},

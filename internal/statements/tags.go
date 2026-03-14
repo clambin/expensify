@@ -1,13 +1,13 @@
 package statements
 
 import (
+	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/rules"
-	"github.com/clambin/expensify/tcsv"
 )
 
 type TaggedRow struct {
 	Tag string
-	tcsv.Row
+	csvt.Row
 }
 
 type TagRule struct {
@@ -30,7 +30,7 @@ func (r TagRules) Evaluate(row map[string]any) (string, bool, error) {
 	return "", false, nil
 }
 
-func Tag(rows []tcsv.Row, s tcsv.Schema, rules TagRules) ([]TaggedRow, error) {
+func Tag(rows []csvt.Row, s csvt.Schema, rules TagRules) ([]TaggedRow, error) {
 	taggedRows := make([]TaggedRow, len(rows))
 	for i, row := range rows {
 		tp := TaggedRow{Row: row}

@@ -14,8 +14,6 @@ type Msg struct {
 
 type Style map[bool]lipgloss.Style
 
-var _ tea.Model = Model{}
-
 type Model struct {
 	style   Style
 	msg     Msg
@@ -34,7 +32,7 @@ func (s Model) Init() tea.Cmd {
 	return s.spinner.Tick
 }
 
-func (s Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (s Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case Msg:
 		s.msg = msg
@@ -46,12 +44,12 @@ func (s Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func (s Model) View() tea.View {
+func (s Model) View() string {
 	msg := s.msg.Text
 	if s.msg.Spinner {
 		msg += " " + s.spinner.View()
 	}
-	return tea.NewView(s.style[s.msg.Warn].Width(s.width).MaxHeight(1).Render(msg))
+	return s.style[s.msg.Warn].Width(s.width).MaxHeight(1).Render(msg)
 }
 
 func (s Model) Width(width int) Model {

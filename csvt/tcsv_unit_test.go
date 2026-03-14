@@ -1,4 +1,4 @@
-package tcsv
+package csvt
 
 import (
 	"io"
