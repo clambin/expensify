@@ -48,7 +48,7 @@ func TestApplication(t *testing.T) {
 
 	// wait for the details to be rendered
 	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
-		return bytes.Contains(bts, []byte("Message 1"))
+		return bytes.Contains(bts, []byte("Amount          -81.40"))
 	})
 
 	tm.Send(tea.KeyPressMsg{Text: "ctrl+c"})
