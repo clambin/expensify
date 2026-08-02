@@ -43,13 +43,12 @@ func TestApplication(t *testing.T) {
 		return bytes.Contains(bts, []byte("Message 1"))
 	})
 
-	// open the details of the first messafe
+	// open the details of the first message
 	tm.Send(enter)
 
 	// wait for the details to be rendered
-	// note: this may be a bit flaky, as "Details" already appears in the list output
 	teatest.WaitFor(t, tm.Output(), func(bts []byte) bool {
-		return bytes.Contains(bts, []byte("Details"))
+		return bytes.Contains(bts, []byte("Message 1"))
 	})
 
 	tm.Send(tea.KeyPressMsg{Text: "ctrl+c"})
