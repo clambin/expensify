@@ -7,7 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/frame"
-	"github.com/clambin/expensify/bubbles/statusbar"
+	"codeberg.org/clambin/bubbles/statusbar"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"
 )
@@ -31,7 +31,7 @@ type Application struct {
 	keyMap         ApplicationKeyMap
 	repoPane       repoView
 	summaryPane    summaryView
-	statusLine     statusbar.Model
+	statusBar      statusbar.StatusBar
 	statementsPane statementsView
 	activePane     paneID
 	width          int
@@ -43,15 +43,18 @@ func New(repo repo.Repo, tagRules []statements.TagRule, keyMap KeyMap) tea.Model
 	h := help.New()
 	h.Styles = helpStyles
 
-	return Application{
+	a := Application{
 		keyMap:         keyMap.ApplicationKeyMap,
 		help:           h,
-		repoPane:       newRepoView(repo, tagRules, keyMap.RepoKeyMap),
-		summaryPane:    newSummaryView(keyMap.SummaryKeyMap),
 		statementsPane: newStatementsView(keyMap.StatementsListKeyMap, keyMap.StatementsDetailsKeyMap),
-		statusLine:     statusbar.New(statusStyles, spinner.WithSpinner(spinner.Dot)),
-		activePane:     repoPane,
+		statusBar: statusbar.New().
+			BaseStyle(statusStyles["INFO"]).
+			LevelStyles(statusStyles).Spinner(spinner.WithSpinner(spinner.Dot)),
+		activePane: repoPane,
 	}
+	a.repoPane = newRepoView(repo, tagRules, keyMap.RepoKeyMap, &a.statusBar)
+	a.summaryPane = newSummaryView(keyMap.SummaryKeyMap, &a.statusBar)
+	return a
 }
 
 func (a Application) Init() tea.Cmd {
@@ -59,7 +62,7 @@ func (a Application) Init() tea.Cmd {
 		a.repoPane.Init(),
 		a.summaryPane.Init(),
 		a.statementsPane.Init(),
-		a.statusLine.Init(),
+		a.statusBar.Init(),
 	)
 }
 
@@ -68,10 +71,6 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
 		return a.sizePanes(), nil
-	case statusbar.Msg:
-		var cmd tea.Cmd
-		a.statusLine, cmd = a.statusLine.Update(msg)
-		return a, cmd
 	case setActivePaneMsg:
 		a.activePane = msg.paneID
 		return a.sizePanes(), nil
@@ -84,7 +83,7 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, a.keyMap.Previous):
 			return a, func() tea.Msg { return setActivePaneMsg{paneID: (a.activePane - 1 + 3) % 3} }
 		case key.Matches(msg, a.keyMap.ClearStatus):
-			return a, func() tea.Msg { return statusbar.Msg{} }
+			return a, a.statusBar.ClearStatusCmd()
 		case key.Matches(msg, a.keyMap.ToggleFullscreen):
 			a.fullscreen = !a.fullscreen
 			return a.sizePanes(), nil
@@ -101,10 +100,11 @@ func (a Application) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, cmd
 		}
 	default:
-		cmds := make([]tea.Cmd, 3)
+		cmds := make([]tea.Cmd, 4)
 		a.repoPane, cmds[0] = a.repoPane.Update(msg)
 		a.summaryPane, cmds[1] = a.summaryPane.Update(msg)
 		a.statementsPane, cmds[2] = a.statementsPane.Update(msg)
+		a.statusBar, cmds[3] = a.statusBar.Update(msg)
 		return a, tea.Batch(cmds...)
 	}
 }
@@ -126,7 +126,7 @@ func (a Application) View() tea.View {
 	}
 	v := tea.NewView(lipgloss.JoinVertical(lipgloss.Top,
 		top,
-		a.statusLine.Width(a.width).View(),
+		a.statusBar.Width(a.width).View(),
 		a.help.View(a),
 	))
 	v.AltScreen = true

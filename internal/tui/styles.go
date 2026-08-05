@@ -31,8 +31,8 @@ var (
 		Border: lipgloss.NewStyle().Border(lipgloss.RoundedBorder()),
 	}
 
-	statusStyles = map[bool]lipgloss.Style{
-		false: lipgloss.NewStyle().Foreground(colors.White).Background(colors.Aqua),
-		true:  lipgloss.NewStyle().Foreground(colors.White).Background(colors.DarkRed),
+	statusStyles = map[string]lipgloss.Style{
+		"INFO":  lipgloss.NewStyle().Foreground(colors.White).Background(colors.Aqua),
+		"ERROR": lipgloss.NewStyle().Foreground(colors.White).Background(colors.DarkRed),
 	}
 )

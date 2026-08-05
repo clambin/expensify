@@ -7,8 +7,8 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"codeberg.org/clambin/bubbles/statusbar"
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/clambin/expensify/bubbles/statusbar"
 	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
 )
@@ -18,9 +18,10 @@ type summaryView struct {
 	taggedStatements []statements.TaggedRow
 	schema           csvt.Schema
 	table.Table
+	statusBar *statusbar.StatusBar
 }
 
-func newSummaryView(keyMap SummaryKeyMap) summaryView {
+func newSummaryView(keyMap SummaryKeyMap, statusBar *statusbar.StatusBar) summaryView {
 	return summaryView{
 		Table: table.New().
 			Columns(table.Columns{
@@ -29,6 +30,7 @@ func newSummaryView(keyMap SummaryKeyMap) summaryView {
 			}).
 			Styles(tableStyles),
 		SummaryKeyMap: keyMap,
+		statusBar:     statusBar,
 	}
 }
 
@@ -42,7 +44,7 @@ func (sv summaryView) Update(msg tea.Msg) (summaryView, tea.Cmd) {
 		sv.taggedStatements = msg.taggedStatements
 		sv.schema = msg.file.Schema
 		sv.Table = sv.Rows(buildRows(sv))
-		return sv, func() tea.Msg { return statusbar.Msg{} }
+		return sv, nil
 	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, sv.Open):
