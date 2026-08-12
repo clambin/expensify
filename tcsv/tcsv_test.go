@@ -1,4 +1,4 @@
-package csvt_test
+package tcsv_test
 
 import (
 	"reflect"
@@ -6,17 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/clambin/expensify/csvt"
+	"github.com/clambin/expensify/tcsv"
 )
 
 func TestSchema(t *testing.T) {
-	s := csvt.Schemas{
-		"test": csvt.Schema{
+	s := tcsv.Schemas{
+		"test": tcsv.Schema{
 			Separator: ',',
-			Columns: []csvt.Column{
-				{"name", csvt.StringColumn{}, "Name"},
-				{"ignore", csvt.IgnoreColumn{}, ""},
-				{"age", csvt.NumberColumn{}, "Age"},
+			Columns: []tcsv.Column{
+				{"name", tcsv.StringColumn{}, "Name"},
+				{"ignore", tcsv.IgnoreColumn{}, ""},
+				{"age", tcsv.NumberColumn{}, "Age"},
 			},
 		},
 	}

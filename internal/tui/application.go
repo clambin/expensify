@@ -33,8 +33,8 @@ type Application struct {
 	keyMap         ApplicationKeyMap
 	repoPane       repoView
 	summaryPane    summaryView
-	statementsPane statementsView
 	statusBar      statusbar.StatusBar
+	statementsPane statementsView
 	activePane     paneID
 	width          int
 	height         int

@@ -8,14 +8,14 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
+	"github.com/clambin/expensify/tcsv"
 )
 
 type summaryView struct {
 	SummaryKeyMap
 	taggedStatements []statements.TaggedRow
-	schema           csvt.Schema
+	schema           tcsv.Schema
 	table.Table
 }
 
@@ -94,7 +94,7 @@ func filterStatements(tag string, taggedStatements []statements.TaggedRow) []sta
 	return filteredStatements
 }
 
-func summarizeStatements(statements []statements.TaggedRow, schema csvt.Schema) (map[string]float64, []string) {
+func summarizeStatements(statements []statements.TaggedRow, schema tcsv.Schema) (map[string]float64, []string) {
 	summary := make(map[string]float64)
 	tags := make(map[string]struct{})
 	for _, statement := range statements {

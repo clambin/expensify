@@ -11,8 +11,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"codeberg.org/clambin/bubbles/table"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
+	"github.com/clambin/expensify/tcsv"
 )
 
 var statementColumns map[string][]table.Column
@@ -147,7 +147,7 @@ func (sv statementsView) FullHelp() [][]key.Binding {
 // statementsListView displays a list of statements
 type statementsListView struct {
 	StatementsListKeyMap
-	schema csvt.Schema
+	schema tcsv.Schema
 	table.Table
 }
 
@@ -254,7 +254,7 @@ func (s statementsDetailsView) SetSize(width, height int) statementsDetailsView 
 	return s
 }
 
-func buildStatementDetailRows(taggedRow table.Row, schema csvt.Schema) []table.Row {
+func buildStatementDetailRows(taggedRow table.Row, schema tcsv.Schema) []table.Row {
 	rows := make([]table.Row, 0, len(taggedRow)+1)
 	var idx int
 	for _, col := range schema.Columns {

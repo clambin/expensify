@@ -4,19 +4,19 @@ import (
 	"testing"
 
 	"codeberg.org/clambin/bubbles/table"
-	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
+	"github.com/clambin/expensify/tcsv"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSummarizeStatements(t *testing.T) {
 	rows := []statements.TaggedRow{
-		{Tag: "Food", Row: csvt.Row{nil, nil, 10.0}},
-		{Tag: "Rent", Row: csvt.Row{nil, nil, 100.0}},
-		{Tag: "Food", Row: csvt.Row{nil, nil, 5.0}},
+		{Tag: "Food", Row: tcsv.Row{nil, nil, 10.0}},
+		{Tag: "Rent", Row: tcsv.Row{nil, nil, 100.0}},
+		{Tag: "Food", Row: tcsv.Row{nil, nil, 5.0}},
 	}
-	schema := csvt.Schema{
-		Columns: []csvt.Column{
+	schema := tcsv.Schema{
+		Columns: []tcsv.Column{
 			{Label: "Date"},
 			{Label: "Other"},
 			{Label: "Amount"},
@@ -37,7 +37,7 @@ func TestStatementsView_DetailsToggle(t *testing.T) {
 	// Open details
 	msg := openStatementDetailsMsg{
 		taggedRow: table.Row{"2024-01-01", "10.0", "Food"},
-		schema:    csvt.Schema{},
+		schema:    tcsv.Schema{},
 	}
 	sv, _ = sv.Update(msg)
 	assert.Equal(t, statementsList, sv.mode)
