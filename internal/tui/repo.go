@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"time"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -17,10 +16,9 @@ type repoView struct {
 	RepoKeyMap
 	tagRules []statements.TagRule
 	table.Table
-	statusBar *statusbar.StatusBar
 }
 
-func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap, statusBar *statusbar.StatusBar) repoView {
+func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap) repoView {
 	return repoView{
 		Table: table.New().
 			Columns([]table.Column{{Name: "Name"}}).
@@ -28,14 +26,13 @@ func newRepoView(r repo.Repo, tagRules []statements.TagRule, keyMap RepoKeyMap, 
 		Repo:       r,
 		tagRules:   tagRules,
 		RepoKeyMap: keyMap,
-		statusBar:  statusBar,
 	}
 }
 
 func (rv repoView) Init() tea.Cmd {
 	return tea.Batch(
+		setStatusBarCmd("Loading files ...", statusbar.WithShowSpinner(true)),
 		rv.Table.Init(),
-		rv.statusBar.SetStatusCmd("Loading files ...", statusbar.WithShowSpinner(true)),
 		rv.loadRepoFilesCmd(),
 	)
 }
@@ -48,18 +45,21 @@ func (rv repoView) Update(msg tea.Msg) (repoView, tea.Cmd) {
 			rows[i] = table.Row{f}
 		}
 		rv.Table = rv.Rows(rows)
-		return rv, rv.statusBar.SetStatusCmd(fmt.Sprintf("Loaded %d files", len(msg.files)), statusbar.WithTTL(10*time.Second))
+		return rv, tea.Batch(
+			setStatusBarCmd(fmt.Sprintf("Loaded %d files", len(msg.files))),
+			// todo: clear the status after 10 sec?
+		)
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, rv.Open):
 			return rv, tea.Batch(
-				rv.statusBar.SetStatusCmd("Loading statements file ...", statusbar.WithShowSpinner(true)),
+				setStatusBarCmd("Loading statements file ...", statusbar.WithShowSpinner(true)),
 				rv.openStatementsFileCmd(rv.SelectedRow()[0].(string)),
 				func() tea.Msg { return setActivePaneMsg{summaryPane} },
 			)
 		case key.Matches(msg, rv.Reload):
 			return rv, tea.Batch(
-				rv.statusBar.SetStatusCmd("Loading files ...", statusbar.WithShowSpinner(true)),
+				setStatusBarCmd("Loading files ...", statusbar.WithShowSpinner(true)),
 				rv.loadRepoFilesCmd(),
 			)
 		}
@@ -76,14 +76,11 @@ func (rv repoView) SetSize(width, height int) repoView {
 
 func (rv repoView) loadRepoFilesCmd() tea.Cmd {
 	return func() tea.Msg {
-		files, err := rv.Repo.List()
+		files, err := rv.List()
 		if err != nil {
-			return rv.statusBar.SetStatusCmd("Error loading files: "+err.Error(), statusbar.WithLevel("ERROR"))()
+			return setStatusBarCmd("Error loading files: "+err.Error(), statusbar.WithLevel("ERROR"))
 		}
-		return tea.Batch(
-			rv.statusBar.ClearStatusCmd(),
-			func() tea.Msg { return populateRepoFilesMsg{files: files} },
-		)()
+		return populateRepoFilesMsg{files: files}
 	}
 }
 
@@ -91,11 +88,8 @@ func (rv repoView) openStatementsFileCmd(key string) tea.Cmd {
 	return func() tea.Msg {
 		taggedStatements, file, err := statements.Open(rv.Repo, key, rv.tagRules)
 		if err != nil {
-			return rv.statusBar.SetStatusCmd("Error loading file "+key+": "+err.Error(), statusbar.WithLevel("ERROR"))()
+			return setStatusBarCmd("Error loading file "+key+": "+err.Error(), statusbar.WithLevel("ERROR"))
 		}
-		return tea.Batch(
-			rv.statusBar.ClearStatusCmd(),
-			func() tea.Msg { return populateStatementsMsg{taggedStatements: taggedStatements, file: file} },
-		)()
+		return populateStatementsMsg{taggedStatements: taggedStatements, file: file}
 	}
 }

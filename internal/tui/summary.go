@@ -7,7 +7,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"codeberg.org/clambin/bubbles/statusbar"
 	"codeberg.org/clambin/bubbles/table"
 	"github.com/clambin/expensify/csvt"
 	"github.com/clambin/expensify/internal/statements"
@@ -18,10 +17,9 @@ type summaryView struct {
 	taggedStatements []statements.TaggedRow
 	schema           csvt.Schema
 	table.Table
-	statusBar *statusbar.StatusBar
 }
 
-func newSummaryView(keyMap SummaryKeyMap, statusBar *statusbar.StatusBar) summaryView {
+func newSummaryView(keyMap SummaryKeyMap) summaryView {
 	return summaryView{
 		Table: table.New().
 			Columns(table.Columns{
@@ -30,7 +28,6 @@ func newSummaryView(keyMap SummaryKeyMap, statusBar *statusbar.StatusBar) summar
 			}).
 			Styles(tableStyles),
 		SummaryKeyMap: keyMap,
-		statusBar:     statusBar,
 	}
 }
 

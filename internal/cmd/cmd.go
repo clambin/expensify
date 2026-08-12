@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	tea "charm.land/bubbletea/v2"
+	"codeberg.org/clambin/bubbles/msglogger"
 	"github.com/clambin/expensify/internal/configuration"
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/tui"
@@ -18,8 +19,21 @@ var (
 			if err != nil {
 				return err
 			}
-			model := tui.New(repo, cfg.Rules, tui.DefaultKeyMap())
+
+			var logger *msglogger.MsgLogger
+			/*
+				f, err := os.OpenFile("log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+					return fmt.Errorf("failed to open log file: %w", err)
+				}
+				logger = msglogger.New(slog.NewTextHandler(f, nil),
+					spinner.TickMsg{},
+					// tea.KeyPressMsg{},
+				)
+			*/
+			model := tui.New(repo, cfg.Rules, tui.DefaultKeyMap(), logger)
 			p := tea.NewProgram(model) //tea.WithoutCatchPanics(),
+
 			_, err = p.Run()
 			return err
 		},

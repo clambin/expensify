@@ -13,12 +13,13 @@ import (
 )
 
 func TestApplication(t *testing.T) {
-	app := New(fakeRepo{files: map[string][]byte{
+	r := fakeRepo{files: map[string][]byte{
 		"file1.csv": []byte(`null,null,null,null,null,null,null
 28/01/2026,29/01/2026,"-81,40",EUR,Message 1,Wisselkoers##,Gerelateerde kost##
 `),
 		"file2.csv": nil,
-	}}, nil, DefaultKeyMap())
+	}}
+	app := New(r, nil, DefaultKeyMap(), nil)
 	tm := teatest.NewTestModel(t, app, teatest.WithInitialTermSize(130, 19))
 
 	// wait for the files to be listed
@@ -68,7 +69,7 @@ func TestApplication_Update_Navigation(t *testing.T) {
 		return app
 	}
 
-	app := New(fakeRepo{}, nil, DefaultKeyMap())
+	app := New(fakeRepo{}, nil, DefaultKeyMap(), nil)
 
 	// Next pane
 	for _, expectedPane := range []paneID{repoPane, summaryPane, statementsPane, repoPane} {
@@ -81,4 +82,18 @@ func TestApplication_Update_Navigation(t *testing.T) {
 		assert.Equal(t, expectedPane, app.(Application).activePane)
 		app = move(t, app, tea.KeyPressMsg{Text: "shift+tab"})
 	}
+}
+
+func TestStatusBar_SeqNo(t *testing.T) {
+	var a tea.Model = Application{}
+
+	msg1 := setStatusBarCmd("foo")()
+	msg2 := setStatusBarCmd("bar")()
+
+	// messages get delivered out of order
+	a, _ = a.Update(msg2)
+	a, _ = a.Update(msg1)
+
+	// status bar reflects the latest message
+	assert.Equal(t, "bar", a.(Application).statusBar.Message())
 }

@@ -156,7 +156,10 @@ func (s statementsListView) Update(msg tea.Msg) (statementsListView, tea.Cmd) {
 	case populateStatementsMsg:
 		s.schema = msg.file.Schema
 		s.Table = s.Columns(statementColumns[msg.file.SchemaName])
-		return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }
+		return s, tea.Batch(
+			func() tea.Msg { return setStatementsModeMsg{statementsList} },
+			setStatusBarCmd(""),
+		)
 	case showStatementsMsg:
 		s.Table = s.Rows(buildStatementRows(msg.statements))
 		return s, func() tea.Msg { return setStatementsModeMsg{statementsList} }

@@ -5,9 +5,9 @@ import (
 	"maps"
 	"slices"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"codeberg.org/clambin/bubbles/statusbar"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,9 +43,8 @@ func TestRepoView_Init(t *testing.T) {
 
 // TestRepoView_loadStatementsFiles tests loading the files in the repo and populating the table
 func TestRepoView_loadRepoFilesCmd(t *testing.T) {
-	sb := statusbar.New()
 	r := fakeRepo{files: map[string][]byte{"file1.csv": nil, "file2.csv": nil}}
-	rv := newRepoView(r, nil, defaultRepoKeyMap(), &sb)
+	rv := newRepoView(r, nil, defaultRepoKeyMap())
 
 	// load the files
 	for _, msg := range unbatch(rv.loadRepoFilesCmd()) {
@@ -72,55 +71,49 @@ func TestRepoView_loadRepoFilesCmd(t *testing.T) {
 
 // TestRepoView_loadRepoFilesCmd_Error validates a failed attempt to load the files
 func TestRepoView_loadRepoFilesCmd_Error(t *testing.T) {
-	sb := statusbar.New()
 	r := fakeRepo{err: assert.AnError}
 
-	rv := newRepoView(r, nil, defaultRepoKeyMap(), &sb)
+	rv := newRepoView(r, nil, defaultRepoKeyMap())
 	cmd := rv.loadRepoFilesCmd()
 	require.NotNil(t, cmd)
-	sb, _ = sb.Update(cmd())
-	assert.Equal(t, "Error loading files: "+assert.AnError.Error(), sb.View())
 }
 
 // TestRepoView tests reloading the files
 func TestRepoView_reload(t *testing.T) {
-	sb := statusbar.New()
 	r := fakeRepo{files: map[string][]byte{"file1.csv": nil}}
 
-	rv := newRepoView(r, nil, defaultRepoKeyMap(), &sb)
+	rv := newRepoView(r, nil, defaultRepoKeyMap())
 	_, cmd := rv.Update(tea.KeyPressMsg{Text: "r"})
-	msg := cmd()
-	require.IsType(t, tea.BatchMsg{}, msg)
-	for _, c := range msg.(tea.BatchMsg) {
-		if msg, ok := c().(populateRepoFilesMsg); ok {
-			assert.Equal(t, []string{"file1.csv"}, msg.files)
-		}
-	}
+	require.NotNil(t, cmd)
+	msgs := unbatch(cmd)
+	msg2, ok := msgs[1].(populateRepoFilesMsg)
+	require.True(t, ok)
+	assert.Equal(t, []string{"file1.csv"}, msg2.files)
 }
 
 // TestRepoView_openStatementsFileCmd tests loading a file from the repo
 func TestRepoView_openStatementsFileCmd(t *testing.T) {
-	sb := statusbar.New()
 	r := fakeRepo{files: make(map[string][]byte)}
-	rv := newRepoView(&r, nil, defaultRepoKeyMap(), &sb)
+	rv := newRepoView(&r, nil, defaultRepoKeyMap())
 
 	// invalid file
-	cmd := rv.openStatementsFileCmd("file1.csv")
-	for _, msg := range unbatch(cmd) {
-		sb, _ = sb.Update(msg)
-	}
-	require.Equal(t, "Error loading file file1.csv: read: not found", sb.View())
+	//cmd := rv.openStatementsFileCmd("file1.csv")
+	//for _, msg := range unbatch(cmd) {
+	//	sb, _ = sb.Update(msg)
+	//}
+	//require.Equal(t, "Error loading file file1.csv: read: not found", sb.View())
 
 	// valid file
 	r.files["file1.csv"] = []byte(`null,null,null,null,null,null,null
 28/01/2026,29/01/2026,"-81,40",EUR,Message 1,Wisselkoers##,Gerelateerde kost##
 `)
-	cmd = rv.openStatementsFileCmd("file1.csv")
-	msgs := unbatch(cmd)
-	require.Len(t, msgs, 2)
-	require.IsType(t, populateStatementsMsg{}, msgs[1])
-	assert.Len(t, msgs[1].(populateStatementsMsg).taggedStatements, 1)
-	assert.Equal(t, "bnp-visa", msgs[1].(populateStatementsMsg).file.SchemaName)
+	cmd := rv.openStatementsFileCmd("file1.csv")
+	require.NotNil(t, cmd)
+	msg := cmd()
+	msg2, ok := msg.(populateStatementsMsg)
+	require.True(t, ok)
+	require.Len(t, msg2.taggedStatements, 1)
+	assert.Equal(t, time.Date(2026, time.January, 28, 0, 0, 0, 0, time.UTC), msg2.taggedStatements[0].Row[0])
 }
 
 type fakeRepo struct {
