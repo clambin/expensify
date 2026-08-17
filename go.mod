@@ -7,7 +7,7 @@ require (
 	charm.land/bubbletea/v2 v2.0.8
 	charm.land/lipgloss/v2 v2.0.6
 	codeberg.org/clambin/bubbles v0.14.0
-	github.com/aws/aws-sdk-go-v2 v1.43.5
+	github.com/aws/aws-sdk-go-v2 v1.43.6
 	github.com/aws/aws-sdk-go-v2/config v1.32.36
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.35
 	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.3.12
@@ -40,7 +40,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.33.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.38.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.5 // indirect
-	github.com/aws/smithy-go v1.27.7 // indirect
+	github.com/aws/smithy-go v1.27.8 // indirect
 	github.com/aymanbagabas/go-udiff v0.4.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -98,8 +98,6 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.69.0 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.44.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
