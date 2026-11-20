@@ -20,7 +20,7 @@ func TestRepo(t *testing.T) {
 
 	t.Run("s3", func(t *testing.T) {
 		ctx := t.Context()
-		minioContainer, err := minio.Run(ctx, "minio/minio:RELEASE.2024-01-16T16-07-38Z")
+		minioContainer, err := minio.Run(ctx, "pgsty/silo:latest")
 		require.NoError(t, err)
 		defer func() {
 			require.NoError(t, testcontainers.TerminateContainer(minioContainer))
