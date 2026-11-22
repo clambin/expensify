@@ -15,26 +15,27 @@ import (
 
 func TestRepo(t *testing.T) {
 	t.Run("fs", func(t *testing.T) {
-		testRepo(t, New(WithFileSystem(t.TempDir())))
+		testRepo(t, FileSystemConfiguration{Path: t.TempDir()}.backend())
 	})
 
 	t.Run("s3", func(t *testing.T) {
 		ctx := t.Context()
-		minioContainer, err := minio.Run(ctx, "pgsty/silo:latest")
+		s3Container, err := minio.Run(ctx, "pgsty/silo:latest")
 		require.NoError(t, err)
 		defer func() {
-			require.NoError(t, testcontainers.TerminateContainer(minioContainer))
+			require.NoError(t, testcontainers.TerminateContainer(s3Container))
 		}()
-		ep, err := minioContainer.ConnectionString(ctx)
+		ep, err := s3Container.ConnectionString(ctx)
 		require.NoError(t, err)
 
 		cfg, err := config.LoadDefaultConfig(
 			ctx,
 			config.WithRegion("ignored"),
 			config.WithCredentialsProvider(
-				credentials.NewStaticCredentialsProvider(minioContainer.Username, minioContainer.Password, ""),
+				credentials.NewStaticCredentialsProvider(s3Container.Username, s3Container.Password, ""),
 			),
 		)
+
 		require.NoError(t, err)
 		s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 			o.BaseEndpoint = aws.String("http://" + ep)
@@ -46,7 +47,15 @@ func TestRepo(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		testRepo(t, New(WithS3Backend(s3Client, "expensify")))
+		b, err := S3Configuration{
+			URL:       "http://" + ep,
+			Bucket:    "expensify",
+			AccessKey: s3Container.Username,
+			SecretKey: s3Container.Password,
+		}.backend(t.Context())
+		require.NoError(t, err)
+
+		testRepo(t, b)
 	})
 }
 

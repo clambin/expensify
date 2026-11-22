@@ -20,33 +20,14 @@ type Repo interface {
 	Get(key string) ([]byte, error)
 }
 
-type cfg struct {
-	backend Repo
-}
-
-type Option func(*cfg)
-
-func New(opts ...Option) Repo {
-	var cfg cfg
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	return cfg.backend
-}
-
-func WithFileSystem(path string) Option {
-	return func(c *cfg) {
-		c.backend = &fsBackend{root: path}
-	}
-}
-
-func WithS3Backend(client S3Client, bucket string) Option {
-	return func(c *cfg) {
-		c.backend = &s3Backend{
-			bucket:   bucket,
-			client:   client,
-			uploader: transfermanager.New(client),
-		}
+func New(ctx context.Context, cfg Configuration) (Repo, error) {
+	switch strings.ToLower(cfg.Type) {
+	case "filesystem":
+		return cfg.FileSystem.backend(), nil
+	case "s3":
+		return cfg.S3.backend(ctx)
+	default:
+		return nil, fmt.Errorf("unknown backend type: %s", cfg.Type)
 	}
 }
 

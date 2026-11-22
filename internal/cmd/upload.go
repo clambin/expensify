@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -10,33 +11,27 @@ import (
 
 	"github.com/clambin/expensify/internal/repo"
 	"github.com/clambin/expensify/internal/statements"
-	"github.com/spf13/cobra"
 )
 
-func init() {
-	RootCmd.AddCommand(uploadCmd)
+// UploadCmd uploads statement files to the repository.
+type UploadCmd struct {
+	Files []string `arg:"" type:"existingfile" help:"statement files to upload"`
 }
 
-var (
-	uploadCmd = &cobra.Command{
-		Use:   "upload",
-		Short: "upload statement files",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			_, repo, err := loadConfigurationWithRepo(cmd)
-			if err != nil {
-				return err
-			}
-			for _, arg := range args {
-				key, err := upload(repo, filepath.Clean(arg))
-				if err != nil {
-					return fmt.Errorf("failed to upload %q: %w", arg, err)
-				}
-				fmt.Println("Successfully uploaded " + key + ".")
-			}
-			return nil
-		},
+func (c *UploadCmd) Run(ctx context.Context, cli *CLI) error {
+	r, err := repo.New(ctx, cli.Storage)
+	if err != nil {
+		return err
 	}
-)
+	for _, file := range c.Files {
+		key, err := upload(r, filepath.Clean(file))
+		if err != nil {
+			return fmt.Errorf("failed to upload %q: %w", file, err)
+		}
+		fmt.Println("Successfully uploaded " + key + ".")
+	}
+	return nil
+}
 
 func upload(repo repo.Repo, filename string) (string, error) {
 	r, err := os.Open(filename)

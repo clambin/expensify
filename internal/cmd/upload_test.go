@@ -52,7 +52,14 @@ func TestUpload(t *testing.T) {
 			filename := filepath.Join(tmpDir, "/test.csv")
 			require.NoError(t, os.WriteFile(filename, tt.body, 0644))
 
-			r := repo.New(repo.WithFileSystem(tmpDir))
+			cfg := repo.Configuration{
+				Type: "filesystem",
+				FileSystem: repo.FileSystemConfiguration{
+					Path: tmpDir,
+				},
+			}
+
+			r, _ := repo.New(t.Context(), cfg)
 			key, err := upload(r, filename)
 			tt.wantErr(t, err)
 			assert.Equal(t, tt.wantKey, key)
@@ -75,8 +82,14 @@ func TestUpload_Duplicate(t *testing.T) {
 	tmpDir := t.TempDir()
 	filename := filepath.Join(tmpDir, "/test.csv")
 	require.NoError(t, os.WriteFile(filename, body, 0644))
+	cfg := repo.Configuration{
+		Type: "filesystem",
+		FileSystem: repo.FileSystemConfiguration{
+			Path: tmpDir,
+		},
+	}
 
-	r := repo.New(repo.WithFileSystem(tmpDir))
+	r, _ := repo.New(t.Context(), cfg)
 	key, err := upload(r, filename)
 	require.NoError(t, err)
 	assert.Equal(t, "bnp-visa-2026-01-24", key)
